@@ -30,12 +30,12 @@
     backdrop-filter: blur(6px);
     text-align:center;
   }
-  h1{margin:6px 0 4px; font-size:34px; color:#fff}
+  h1{margin:6px 0 4px; font-size:50px; color:#fff}
   .subtitle{color:rgba(255,255,255,0.9); margin-bottom:18px}
   .countdown{display:flex; gap:12px; justify-content:center; margin:18px 0;}
   .count-item{background:rgba(255,255,255,0.14); padding:12px 18px; border-radius:12px; min-width:84px}
-  .count-item .num{font-size:28px; font-weight:700; color:#fff}
-  .count-item .label{font-size:12px; color:rgba(255,255,255,0.9)}
+  .count-item .num{font-size:50px; font-weight:700; color:#fff}
+  .count-item .label{font-size:50px; color:rgba(255,255,255,0.9)}
   .plane-wrap{position:relative; height:220px; margin-top:14px; overflow:visible}
   .plane{
     width:160px;
@@ -105,7 +105,7 @@
   </div>
 
 <script>
-  const eventDate = new Date("2025-08-21T00:50:00"); // Cambia esta fecha
+  const eventDate = new Date("2025-09-13T18:00:00"); // Cambia esta fecha
 
   function pad(n){ return String(n).padStart(2,'0'); }
 
@@ -138,7 +138,7 @@
     const plane = document.querySelector('.plane');
     plane.classList.add('takeoff');
     if('speechSynthesis' in window){
-      const text = "Bienvenidos a bordo del vuelo de la familia [Apellido]. Les habla su capitán y tripulación: gracias por acompañarnos en este viaje tan especial. En breve iniciaremos despegue y, al alcanzar la altitud de revelación, sabremos si nuestro destino será Bluelandia o Pinklandia. Favor de abrochar cinturones";
+      const text = "Coming Soon";
       const utter = new SpeechSynthesisUtterance(text);
       utter.rate = 1.05;
       utter.pitch = 1.0;
