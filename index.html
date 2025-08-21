@@ -138,7 +138,7 @@
     const plane = document.querySelector('.plane');
     plane.classList.add('takeoff');
     if('speechSynthesis' in window){
-      const text = "Señoras y señores, favor de abrochar sus cinturones. Preparados para el despegue... ¡y la revelación!";
+      const text = "Bienvenidos a bordo del vuelo de la familia [Apellido]. Les habla su capitán y tripulación: gracias por acompañarnos en este viaje tan especial. En breve iniciaremos despegue y, al alcanzar la altitud de revelación, sabremos si nuestro destino será Bluelandia o Pinklandia. Favor de abrochar cinturones";
       const utter = new SpeechSynthesisUtterance(text);
       utter.rate = 1.05;
       utter.pitch = 1.0;
