@@ -130,7 +130,7 @@
   </div>
 
 <script>
-  const eventDate = new Date("2025-08-26T00:00:00");
+  const eventDate = new Date("2025-09-13T17:00:00");
   const plane = document.querySelector('.plane');
   let didTrigger = false;
 
@@ -156,7 +156,7 @@
 
     // 🎤 Voice
     if('speechSynthesis' in window){
-      const utter = new SpeechSynthesisUtterance("¡Es un   unaaaaaax niña!");
+      const utter = new SpeechSynthesisUtterance("¡Es un unaaaaaa niña!");
       utter.lang = "es-ES";
       window.speechSynthesis.speak(utter);
     }
