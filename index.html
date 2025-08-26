@@ -125,12 +125,12 @@
     <div id="revealText" class="reveal">¿Niño o Niña?</div>
 
     <div class="cta">
-    <!-- <button id="manualTrigger">Simular despegue (prueba)</button> -->
+    <button id="manualTrigger" disabled>Simular despegue (prueba)</button>
     </div>
   </div>
 
 <script>
-  const eventDate = new Date("2025-09-13T18:00:00");
+  const eventDate = new Date("2025-08-26T00:00:00");
   const plane = document.querySelector('.plane');
   let didTrigger = false;
 
@@ -156,7 +156,7 @@
 
     // 🎤 Voice
     if('speechSynthesis' in window){
-      const utter = new SpeechSynthesisUtterance("¡Es una niña!");
+      const utter = new SpeechSynthesisUtterance("¡Es un   unaaaaaax niña!");
       utter.lang = "es-ES";
       window.speechSynthesis.speak(utter);
     }
