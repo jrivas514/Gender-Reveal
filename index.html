@@ -9,7 +9,6 @@
     --pink: #ffd6e8;
     --blue: #d6ebff;
     --bg1: linear-gradient(90deg, var(--pink), var(--blue));
-    --accent: #ffffff;
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
   }
   html,body{height:100%; margin:0;}
@@ -19,7 +18,28 @@
     align-items:center;
     justify-content:center;
     color:#222;
+    overflow:hidden;
   }
+
+  /* 🌆 Pinklandia background city */
+  #pinklandia-bg {
+    position: fixed;
+    bottom:0; left:0;
+    width:100%; height:100%;
+    background: url("pinklandia-city.jpg") bottom center/cover no-repeat;
+    opacity:0;
+    transition: opacity 2s ease;
+    z-index:0;
+  }
+  #pinklandia-bg.show {
+    opacity:1;
+    animation: panCity 20s linear infinite alternate; /* 🎥 Parallax pan */
+  }
+  @keyframes panCity {
+    0% { background-position: bottom left; }
+    100% { background-position: bottom right; }
+  }
+
   .card{
     width:92%;
     max-width:1000px;
@@ -29,53 +49,60 @@
     box-shadow: 0 10px 30px rgba(0,0,0,0.12);
     backdrop-filter: blur(6px);
     text-align:center;
+    position:relative;
+    z-index:10;
   }
   h1{margin:6px 0 4px; font-size:50px; color:#fff}
   .subtitle{color:rgba(255,255,255,0.9); margin-bottom:18px}
   .countdown{display:flex; gap:12px; justify-content:center; margin:18px 0;}
   .count-item{background:rgba(255,255,255,0.14); padding:12px 18px; border-radius:12px; min-width:84px}
-  .count-item .num{font-size:50px; font-weight:700; color:#fff}
-  .count-item .label{font-size:50px; color:rgba(255,255,255,0.9)}
-  .plane-wrap{position:relative; height:220px; margin-top:14px; overflow:visible}
+  .count-item .num{font-size:40px; font-weight:700; color:#fff}
+  .count-item .label{font-size:18px; color:rgba(255,255,255,0.9)}
+
+  /* ✈️ Airplane */
   .plane{
     width:160px;
     position:absolute;
-    left:10%;
-    bottom:4%;
-    transform-origin:center;
-    transition: transform 1s linear;
+    left:-200px;
+    bottom:150px; /* ✨ lands near skyline bottom */
+    opacity:0;
+    transition:all 1s linear;
+    z-index:15;
   }
-  .takeoff {
-    animation: takeoff 2.2s ease-in forwards;
-  }
+  .plane.takeoff{ animation: takeoff 2s ease-in forwards; }
+  .plane.landing{ animation: landing 3s ease-out forwards; }
   @keyframes takeoff {
-    0% { transform: translateX(0) translateY(0) rotate(0deg) scale(1); opacity:1 }
-    40% { transform: translateX(40vw) translateY(-8vh) rotate(-6deg) scale(1.05); opacity:1 }
-    100%{ transform: translateX(120vw) translateY(-60vh) rotate(-12deg) scale(1.1); opacity:0 }
+    0% { left:10%; bottom:150px; opacity:1; }
+    100%{ left:120%; bottom:60%; opacity:0; }
   }
+  @keyframes landing {
+    0% { left:120%; bottom:80%; opacity:1; transform:rotate(10deg); }
+    100% { left:50%; bottom:150px; opacity:1; transform:rotate(0deg) translateX(-50%); }
+  }
+
   .reveal {
     margin-top:22px;
-    font-size:22px;
+    font-size:36px;
     font-weight:700;
     opacity:0;
-    transition: opacity 0.9s ease 0.6s;
+    transition: opacity 1s ease 0.6s;
   }
-  .reveal.show { opacity:1; color:#fff; text-shadow: 0 5px 18px rgba(0,0,0,0.4) }
-  .cta {
-    margin-top:16px;
+  .reveal.show { opacity:1; color:#ff4fa3; text-shadow: 0 5px 18px rgba(0,0,0,0.4) }
+
+  canvas#confetti {
+    position:fixed;
+    top:0; left:0;
+    width:100%; height:100%;
+    pointer-events:none;
+    z-index:5;
   }
-  button {
-    background: rgba(255,255,255,0.95);
-    border: none;
-    padding:10px 18px;
-    border-radius:12px;
-    font-weight:700;
-    cursor:pointer;
-  }
-  .small {font-size:12px; color:rgba(255,255,255,0.85); margin-top:10px}
 </style>
 </head>
 <body>
+  <div id="pinklandia-bg"></div> <!-- 🌆 Pinklandia background -->
+
+  <canvas id="confetti"></canvas>
+
   <div class="card">
     <h1>¡Despegando hacia...?</h1>
     <div class="subtitle">Destino: <strong>Bluelandia</strong> o <strong>Pinklandia</strong></div>
@@ -87,40 +114,31 @@
       <div class="count-item"><div class="num" id="seconds">00</div><div class="label">Seg</div></div>
     </div>
 
-    <div class="plane-wrap" aria-hidden="true">
-      <svg class="plane" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-        <g fill="#fff">
-          <path d="M4 30 L52 18 L56 20 L28 34 L60 38 L56 40 L52 42 L4 30 Z" opacity="0.95"/>
-          <rect x="2" y="30" width="6" height="2" fill="#fff"/>
-        </g>
-      </svg>
-    </div>
+    <!-- ✈️ SVG airplane -->
+    <svg class="plane" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+      <g fill="#fff">
+        <path d="M4 30 L52 18 L56 20 L28 34 L60 38 L56 40 L52 42 L4 30 Z" opacity="0.95"/>
+        <rect x="2" y="30" width="6" height="2" fill="#fff"/>
+      </g>
+    </svg>
 
     <div id="revealText" class="reveal">¿Niño o Niña?</div>
 
     <div class="cta">
       <button id="manualTrigger">Simular despegue (prueba)</button>
-      <div class="small">Escanea el QR que recibiste para ver la cuenta regresiva desde tu teléfono.</div>
     </div>
   </div>
 
 <script>
-  const eventDate = new Date("2025-09-13T18:00:00"); // Cambia esta fecha
+  const eventDate = new Date("2025-09-13T18:00:00");
+  const plane = document.querySelector('.plane');
+  let didTrigger = false;
 
   function pad(n){ return String(n).padStart(2,'0'); }
-
   function updateTimer(){
     const now = new Date();
     const diff = eventDate - now;
-    if(diff <= 0){
-      document.getElementById('days').textContent = "00";
-      document.getElementById('hours').textContent = "00";
-      document.getElementById('minutes').textContent = "00";
-      document.getElementById('seconds').textContent = "00";
-      triggerTakeoff();
-      clearInterval(timerInterval);
-      return;
-    }
+    if(diff <= 0){ triggerTakeoff(); clearInterval(timerInterval); return; }
     const s = Math.floor(diff/1000)%60;
     const m = Math.floor(diff/60000)%60;
     const h = Math.floor(diff/3600000)%24;
@@ -131,39 +149,69 @@
     document.getElementById('seconds').textContent = pad(s);
   }
 
-  let didTrigger = false;
   function triggerTakeoff(){
     if(didTrigger) return;
     didTrigger = true;
-    const plane = document.querySelector('.plane');
     plane.classList.add('takeoff');
+
+    // 🎤 Voice
     if('speechSynthesis' in window){
-      const text = "Coming Soon";
-      const utter = new SpeechSynthesisUtterance(text);
-      utter.rate = 1.05;
-      utter.pitch = 1.0;
+      const utter = new SpeechSynthesisUtterance("¡Es una niña!");
+      utter.lang = "es-ES";
       window.speechSynthesis.speak(utter);
     }
-    setTimeout(()=> {
-      const reveal = document.getElementById('revealText');
-      reveal.textContent = "¡Es un/a ....?";
-      reveal.classList.add('show');
-      const body = document.body;
-      const cover = document.createElement('div');
-      cover.style.position='fixed';
-      cover.style.left=0; cover.style.top=0; cover.style.width='100%'; cover.style.height='100%';
-      cover.style.pointerEvents='none';
-      cover.style.background='radial-gradient(circle at 20% 70%, rgba(255,182,193,0.55), transparent 15%), radial-gradient(circle at 80% 30%, rgba(173,216,230,0.55), transparent 15%)';
-      cover.style.transition='opacity 2s';
-      body.appendChild(cover);
-      setTimeout(()=> cover.style.opacity='0', 2500);
-      setTimeout(()=> cover.remove(), 5000);
-    }, 1800);
+
+    setTimeout(()=>{
+      plane.classList.remove('takeoff');
+      plane.classList.add('landing');
+    }, 2000);
+
+    setTimeout(()=>{
+      document.getElementById('revealText').textContent = "¡Es una Niña! 💖";
+      document.getElementById('revealText').classList.add('show');
+      document.body.style.background = "#ffd6e8";
+      document.getElementById('pinklandia-bg').classList.add('show'); // 🌆 show + pan
+      startConfetti();
+    }, 4500);
   }
 
   document.getElementById('manualTrigger').addEventListener('click', triggerTakeoff);
   updateTimer();
   const timerInterval = setInterval(updateTimer, 1000);
+
+  // 🎉 Confetti
+  const confettiCanvas = document.getElementById('confetti');
+  const ctx = confettiCanvas.getContext('2d');
+  confettiCanvas.width = window.innerWidth;
+  confettiCanvas.height = window.innerHeight;
+  let confetti = [];
+  function startConfetti(){
+    for(let i=0; i<200; i++){
+      confetti.push({
+        x: Math.random()*confettiCanvas.width,
+        y: Math.random()*confettiCanvas.height - confettiCanvas.height,
+        r: Math.random()*6+4,
+        d: Math.random()*20+10,
+        color: "hsl("+(Math.random()*30+330)+",100%,70%)",
+        tilt: Math.random()*10 -10
+      });
+    }
+    requestAnimationFrame(drawConfetti);
+  }
+  function drawConfetti(){
+    ctx.clearRect(0,0,confettiCanvas.width,confettiCanvas.height);
+    for(let i=0;i<confetti.length;i++){
+      let c = confetti[i];
+      ctx.fillStyle = c.color;
+      ctx.fillRect(c.x, c.y, c.r, c.r);
+      c.y += c.d/20;
+      if(c.y > confettiCanvas.height){
+        c.y = -10;
+        c.x = Math.random()*confettiCanvas.width;
+      }
+    }
+    requestAnimationFrame(drawConfetti);
+  }
 </script>
 </body>
 </html>
