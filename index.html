@@ -1,4 +1,4 @@
-<!-- build: v-final-en-male + big-countdown -->
+<!-- build: v-final-en-male + big-countdown + hold-before-pink -->
 <!doctype html>
 <html lang="en">
 <head>
@@ -7,21 +7,22 @@
 <title>Gender Reveal — Landing</title>
 <style>
   :root{
-    --shake: 0.7px; /* ⬅️ reduce o pon 0px para quitar el shaking */
+    --shake: 0.7px; /* reduce o pon 0px para quitar el shaking */
     font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;
   }
   html,body{height:100%;margin:0;background:#000;color:#fff;overflow:hidden}
 
-  /* 4 landing frames; last one stays on screen */
+  /* Secuencia de 4 imágenes (la última queda en pantalla) */
   #runway-seq{position:fixed;inset:0;z-index:0;opacity:0;transition:opacity .4s ease;background:#000;overflow:hidden}
   #runway-seq.show{opacity:1}
+  #runway-seq.fade-out{opacity:0;transition:opacity .8s ease}
   #runway-seq img{
     position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
     opacity:0;transform:scale(1);transition:opacity .8s ease, transform 2.6s ease;
   }
   #runway-seq img.show{ opacity:1; animation:zoomIn 3.2s forwards, shakeSmall .45s infinite; }
   @keyframes zoomIn{from{transform:scale(1)}to{transform:scale(1.15)}}
-  /* 🔧 shaking MUY sutil */
+  /* Shaking muy sutil */
   @keyframes shakeSmall{
     0%  {transform:translate(0,0) scale(1.05)}
     25% {transform:translate(calc(var(--shake)*-1), var(--shake)) scale(1.055)}
@@ -37,7 +38,7 @@
     100%{transform:translateY(0) scale(1.15)}
   }
 
-  /* Start card (preview button) */
+  /* Tarjeta inicial (solo para el botón de prueba) */
   .card{
     width:92%;max-width:1000px;margin:auto;position:relative;z-index:10;
     background:rgba(255,255,255,.08);border-radius:20px;padding:28px;
@@ -53,12 +54,12 @@
   .count-item .label{font-size:14px;opacity:.9}
   .cta button{padding:10px 16px;border-radius:10px;border:0;cursor:pointer}
 
-  /* takeoff icon */
+  /* Avión de despegue (decorativo) */
   .plane{width:140px;position:absolute;left:-200px;bottom:130px;opacity:0;transition:all 1s linear;z-index:5}
   .plane.takeoff{animation:takeoff 2s ease-in forwards}
   @keyframes takeoff{0%{left:10%;bottom:130px;opacity:1}100%{left:120%;bottom:60%;opacity:0}}
 
-  /* Pinklandia background (visible at reveal) */
+  /* Fondo Pinklandia (solo en el reveal) */
   #pinklandia-bg{
     position:fixed;inset:0;background:url("pinklandia-city.jpg") bottom center/cover no-repeat;
     opacity:0;transition:opacity 1.6s ease;z-index:1
@@ -66,7 +67,7 @@
   #pinklandia-bg.show{opacity:1;animation:panCity 20s linear infinite alternate}
   @keyframes panCity{0%{background-position:bottom left}100%{background-position:bottom right}}
 
-  /* Final big sign */
+  /* Letrero final */
   #only-reveal{
     position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;
     opacity:0;transition:opacity 1s ease .2s;pointer-events:none;
@@ -78,7 +79,7 @@
     color:#ffe6f2;text-shadow:0 8px 30px rgba(0,0,0,.55), 0 0 10px rgba(255,105,180,.35);
   }
 
-  /* 🔢 Overlay de cuenta regresiva 5-4-3-2-1 */
+  /* Overlay de cuenta 5-4-3-2-1 */
   #count-overlay{
     position:fixed;inset:0;z-index:19;display:none;align-items:center;justify-content:center;
     background:rgba(0,0,0,.12);
@@ -98,7 +99,7 @@
     100%{opacity:0;transform:scale(.9)}
   }
 
-  /* Confetti (only starts at the reveal) */
+  /* Confetti (solo en el reveal) */
   canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:15}
 </style>
 </head>
@@ -112,7 +113,7 @@
     <img id="frame3" alt="frame3"/>
   </div>
 
-  <!-- Sounds -->
+  <!-- Sonidos -->
   <audio id="snd-ding"    src="seatbelt-ding.mp3" preload="auto"></audio>
   <audio id="snd-engine"  src="engine-loop.mp3"    preload="auto" loop></audio>
   <audio id="snd-wind"    src="wind-rumble.mp3"    preload="auto" loop></audio>
@@ -121,12 +122,12 @@
   <audio id="snd-roar"    src="takeoff-roar.mp3"    preload="auto"></audio>
   <audio id="snd-crowd"   src="applause-cheer.mp3"  preload="auto"></audio>
 
-  <!-- Background + Final sign + Countdown -->
+  <!-- Fondo + Letrero + Countdown -->
   <div id="pinklandia-bg"></div>
   <div id="only-reveal"><div class="title">It's a Girl! 💖</div></div>
   <div id="count-overlay"><div id="count-num">5</div></div>
 
-  <!-- Start card for preview -->
+  <!-- Tarjeta de inicio -->
   <div class="card" id="card">
     <h1>Taking off to...?</h1>
     <div class="subtitle">Destination: <strong>Bluelandia</strong> or <strong>Pinklandia</strong></div>
@@ -156,7 +157,7 @@
   const onlyReveal = document.getElementById('only-reveal');
   const pinkBG = document.getElementById('pinklandia-bg');
 
-  /* ======= Sounds ======= */
+  /* ======= Sonidos ======= */
   const snd={
     ding:document.getElementById('snd-ding'),
     engine:document.getElementById('snd-engine'),
@@ -173,12 +174,12 @@
     }catch(e){}
   }
 
-  /* ======= Guaranteed applause (file or synthetic) ======= */
+  /* ======= Aplausos garantizados (archivo o sintético) ======= */
   let AC=null, masterG=null;
   function ensureAC(){if(!AC){AC=new (window.AudioContext||window.webkitAudioContext)();masterG=AC.createGain();masterG.connect(AC.destination);}}
   function randomNoiseBuffer(len=0.18){const n=Math.floor(len*AC.sampleRate);const b=AC.createBuffer(1,n,AC.sampleRate);const d=b.getChannelData(0);for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*(1-i/n);return b;}
   function scheduleClap(t){const s=AC.createBufferSource();s.buffer=randomNoiseBuffer(0.12+Math.random()*0.06);const bp=AC.createBiquadFilter();bp.type='bandpass';bp.frequency.value=1800+Math.random()*1200;bp.Q.value=4;const g=AC.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(1,t+0.01);g.gain.exponentialRampToValueAtTime(0.001,t+0.2);s.connect(bp);bp.connect(g);g.connect(masterG);s.start(t);}
-  function scheduleCheer(start,dur){const src=AC.createBufferSource();const n=AC.createBuffer(1,AC.sampleRate*dur,AC.sampleRate);const d=n.getChannelData(0);let a=0,b0=0;for(let i=0;i<d.length;i++){const w=Math.random()*2-1;a=0.997*a+w*0.03;b0=0.985*b0+a*0.08;d[i]=b0*0.3;}src.buffer=n;const g=AC.createGain();g.gain.setValueAtTime(0,start);g.gain.linearRampToValueAtTime(0.48,start+0.5);g.gain.linearRampToValueAtTime(0.0,start+dur);src.connect(g);g.connect(masterG);src.start(start);src.stop(start+dur+0.1);}
+  function scheduleCheer(start,dur){const src=AC.createBufferSource();const n=AC.createBuffer(1,AC.sampleRate*dur,AC.sampleRate);const d=n.getChannelData(0);let a=0,b0=0;for(let i=0;i<d.length;i++){const w=Math.random()*2-1;a=0.997*a+w*0.03;b0=0.985*b0+a*0.08;d[i]=b0*0.3;}src.buffer=n;const g=AC.createGain();g.gain.setValueAtTime(0,start);g.gain.linearRampToValueAtTime(0.45,start+0.5);g.gain.linearRampToValueAtTime(0.0,start+dur);src.connect(g);g.connect(masterG);src.start(start);src.stop(start+dur+0.1);}
   function applauseFallback(ms=7000){
     ensureAC(); if(AC.state==='suspended') AC.resume();
     const now=AC.currentTime+0.02; const dur=ms/1000;
@@ -199,7 +200,7 @@
     }
   }
 
-  /* ======= Countdown (preview card) ======= */
+  /* ======= Countdown (tarjeta) ======= */
   const days=document.getElementById('days'),hours=document.getElementById('hours'),minutes=document.getElementById('minutes'),seconds=document.getElementById('seconds');
   function pad(n){return String(n).padStart(2,'0');}
   function tick(){
@@ -210,7 +211,7 @@
   }
   const tmr=setInterval(tick,1000); tick();
 
-  /* ======= Voice helpers ======= */
+  /* ======= Voz (masculina en inglés) ======= */
   speechSynthesis.getVoices();
   function runAfterVoices(cb){
     if (speechSynthesis.getVoices().length) cb();
@@ -231,7 +232,7 @@
     });
   }
 
-  /* ======= Captain (male English) ======= */
+  /* ======= Capitán ======= */
   async function captainAnnouncement(){
     await speak("Ladies and gentlemen, this is your captain speaking. Welcome aboard.", {rate:0.84, pitch:0.95});
     await speak("We are ready for departure to Pinklandia, or Bluelandia.", {rate:0.84, pitch:0.95});
@@ -241,7 +242,7 @@
     await speak("We are taking off.", {rate:0.82, pitch:0.94});
   }
 
-  /* ======= Reveal shouts (male) ======= */
+  /* ======= Gritos de reveal ======= */
   function speakReveal(){
     const say = (t, d=0, r=1.06, p=0.98)=> setTimeout(()=> speak(t,{rate:r,pitch:p}), d);
     say("It's a...", 0, 1.02, 0.96);
@@ -250,7 +251,7 @@
     say("It's a girl!", 2000, 1.08, 0.98);
   }
 
-  /* ======= Landing sequence ======= */
+  /* ======= Secuencia de aterrizaje ======= */
   function playLandingSequence(afterTouchdown){
     const seq=document.getElementById('runway-seq');
     seq.classList.add('show');
@@ -258,7 +259,7 @@
     try{ snd.wind.volume=.45; snd.wind.play(); }catch(e){}
     play(snd.roar,.58);
 
-    const times=[1600,2000,2300,3200]; // total ~9.1s
+    const times=[1600,2000,2300,3200]; // ~9.1s total
     frames.forEach((_,i)=>{
       const img=document.getElementById("frame"+i);
       setTimeout(()=>{
@@ -269,30 +270,31 @@
           setTimeout(()=>{
             play(snd.touch,.95);
             setTimeout(()=>play(snd.reverse,.9),150);
-            afterTouchdown && afterTouchdown();  // ⬅️ arranca countdown
+            afterTouchdown && afterTouchdown();  // aquí arrancamos la siguiente fase
           },700);
         }
       }, times.slice(0,i+1).reduce((a,b)=>a+b,0));
     });
   }
 
-  /* ======= Big 5-4-3-2-1 before reveal ======= */
+  /* ======= Cuenta 5-4-3-2-1 antes del reveal ======= */
+  const COUNT_STEP_MS = 900;               // velocidad del conteo (900ms por número)
+  const HOLD_BEFORE_COUNTDOWN = 1500;      // ⬅️ pausa extra en la pista ANTES del 5
   function startRevealCountdown(done){
     const overlay = document.getElementById('count-overlay');
     const numEl   = document.getElementById('count-num');
     overlay.classList.add('show');
     let n = 5;
-    const stepMs = 900; // tempo de conteo
     function tick(){
       numEl.textContent = n;
       numEl.classList.remove('count-pop'); void numEl.offsetWidth; // reflow
       numEl.classList.add('count-pop');
-      if(n>1){ n--; setTimeout(tick, stepMs); }
+      if(n>1){ n--; setTimeout(tick, COUNT_STEP_MS); }
       else{
         setTimeout(()=>{
           overlay.classList.remove('show');
           done && done();
-        }, stepMs);
+        }, COUNT_STEP_MS);
       }
     }
     tick();
@@ -319,9 +321,12 @@
     requestAnimationFrame(draw);
   }
 
-  /* ======= Reveal (keep confetti & background) ======= */
+  /* ======= Reveal (Pinklandia + letrero + confetti) ======= */
   function showFinal(){
-    pinkBG.classList.add('show');
+    // fundimos la pista y traemos Pinklandia para que no se vea con el conteo
+    document.getElementById('runway-seq').classList.add('fade-out');
+    setTimeout(()=>{ pinkBG.classList.add('show'); }, 300);
+
     card.classList.add('hide-out');
     document.getElementById('only-reveal').classList.add('show');
     startConfetti();
@@ -330,7 +335,7 @@
     setTimeout(()=>{ try{ fadeOut(snd.wind,1200); fadeOut(snd.engine,1800); }catch(e){} }, 1500);
   }
 
-  /* ======= Orchestration ======= */
+  /* ======= Orquestación ======= */
   function trigger(){
     try{ ensureAC(); if(AC.state==='suspended') AC.resume(); }catch(e){}
     play(snd.ding,.9);
@@ -338,11 +343,12 @@
     plane.classList.add('takeoff');
     setTimeout(()=>{
       plane.classList.remove('takeoff');
-      playLandingSequence(()=> startRevealCountdown(showFinal));
+      // ⬇️ Tras el touchdown, mostramos la pista un rato y recién ahí arrancamos el 5-4-3-2-1
+      playLandingSequence(()=> setTimeout(()=> startRevealCountdown(showFinal), HOLD_BEFORE_COUNTDOWN));
     }, 1600);
   }
 
-  // ready after voices load
+  // Listo tras cargar voces
   document.getElementById('manualTrigger').addEventListener('click', () => {
     runAfterVoices(trigger);
   });
