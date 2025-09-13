@@ -6,141 +6,90 @@
 <title>Revelación de sexo — Destino</title>
 <style>
   :root{
-    --pink: #ffd6e8;
-    --blue: #d6ebff;
-    --bg1: linear-gradient(90deg, var(--pink), var(--blue));
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    --pink:#ffd6e8; --blue:#d6ebff;
+    --bg1:linear-gradient(90deg,var(--pink),var(--blue));
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;
   }
-  html,body{height:100%; margin:0;}
+  html,body{height:100%;margin:0}
   body{
-    background: var(--bg1);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    color:#222;
-    overflow:hidden;
+    background:var(--bg1);
+    display:flex;align-items:center;justify-content:center;
+    color:#222;overflow:hidden;
   }
 
   /* 🌆 Pinklandia background city */
-  #pinklandia-bg {
-    position: fixed;
-    bottom:0; left:0;
-    width:100%; height:100%;
-    background: url("pinklandia-city.jpg") bottom center/cover no-repeat;
-    opacity:0;
-    transition: opacity 2s ease;
-    z-index:0;
+  #pinklandia-bg{
+    position:fixed;inset:0;
+    background:url("pinklandia-city.jpg") bottom center/cover no-repeat;
+    opacity:0;transition:opacity 2s ease;z-index:0;
   }
-  #pinklandia-bg.show {
-    opacity:1;
-    animation: panCity 20s linear infinite alternate;
-  }
-  @keyframes panCity {
-    0% { background-position: bottom left; }
-    100% { background-position: bottom right; }
-  }
+  #pinklandia-bg.show{opacity:1;animation:panCity 20s linear infinite alternate}
+  @keyframes panCity{0%{background-position:bottom left}100%{background-position:bottom right}}
 
-  /* 🎞️ Secuencia cockpit/rumbo a pista */
-  #runway-seq{
-    position: fixed;
-    inset: 0;
-    z-index:2;           /* debajo de la tarjeta, encima del fondo */
-    opacity:0;
-    transition: opacity .4s ease;
-    background:#000;     /* evita parpadeos al cambiar de frame */
-  }
-  #runway-seq.show{ opacity:1; }
-  #runway-seq img{
-    position:absolute; inset:0;
-    width:100%; height:100%;
-    object-fit:cover;
-  }
+  /* 🎞️ Secuencia de aterrizaje (frames) */
+  #runway-seq{position:fixed;inset:0;z-index:2;opacity:0;transition:opacity .4s ease;background:#000}
+  #runway-seq.show{opacity:1}
+  #runway-seq img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 
-  /* 🤢 Turbulencia / sacudida de cámara */
-  @keyframes shake {
-    0%   { transform: translate(0,0) rotate(0deg); }
-    20%  { transform: translate(-2px,1px) rotate(-0.2deg); }
-    40%  { transform: translate(3px,-1px) rotate(0.3deg); }
-    60%  { transform: translate(-1px,2px) rotate(-0.3deg); }
-    80%  { transform: translate(2px,0) rotate(0.2deg); }
-    100% { transform: translate(0,0) rotate(0deg); }
+  /* 🤢 Turbulencia */
+  @keyframes shake{
+    0%{transform:translate(0,0) rotate(0deg)}
+    20%{transform:translate(-2px,1px) rotate(-.2deg)}
+    40%{transform:translate(3px,-1px) rotate(.3deg)}
+    60%{transform:translate(-1px,2px) rotate(-.3deg)}
+    80%{transform:translate(2px,0) rotate(.2deg)}
+    100%{transform:translate(0,0) rotate(0deg)}
   }
-  .camera-shake{ animation: shake .12s linear infinite; }
+  .camera-shake{animation:shake .12s linear infinite}
 
-  /* 💥 Golpe de touchdown */
-  @keyframes bump {
-    0%   { transform: translateY(0) scale(1); filter: brightness(1); }
-    20%  { transform: translateY(6px) scale(.995); filter: brightness(.95); }
-    45%  { transform: translateY(-2px) scale(1.002); filter: brightness(1.05); }
-    100% { transform: translateY(0) scale(1); filter: brightness(1); }
+  /* 💥 Touchdown */
+  @keyframes bump{
+    0%{transform:translateY(0) scale(1);filter:brightness(1)}
+    20%{transform:translateY(6px) scale(.995);filter:brightness(.95)}
+    45%{transform:translateY(-2px) scale(1.002);filter:brightness(1.05)}
+    100%{transform:translateY(0) scale(1);filter:brightness(1)}
   }
-  .touchdown-bump{ animation: bump .55s ease-out 1; }
+  .touchdown-bump{animation:bump .55s ease-out 1}
 
   .card{
-    width:92%;
-    max-width:1000px;
-    background: rgba(255,255,255,0.08);
-    border-radius:20px;
-    padding:28px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.12);
-    backdrop-filter: blur(6px);
-    text-align:center;
-    position:relative;
-    z-index:10;
+    width:92%;max-width:1000px;background:rgba(255,255,255,.08);
+    border-radius:20px;padding:28px;box-shadow:0 10px 30px rgba(0,0,0,.12);
+    backdrop-filter:blur(6px);text-align:center;position:relative;z-index:10;
   }
-  h1{margin:6px 0 4px; font-size:50px; color:#fff}
-  .subtitle{color:rgba(255,255,255,0.9); margin-bottom:18px}
-  .countdown{display:flex; gap:12px; justify-content:center; margin:18px 0;}
-  .count-item{background:rgba(255,255,255,0.14); padding:12px 18px; border-radius:12px; min-width:84px}
-  .count-item .num{font-size:40px; font-weight:700; color:#fff}
-  .count-item .label{font-size:18px; color:rgba(255,255,255,0.9)}
+  h1{margin:6px 0 4px;font-size:50px;color:#fff}
+  .subtitle{color:rgba(255,255,255,.9);margin-bottom:18px}
+  .countdown{display:flex;gap:12px;justify-content:center;margin:18px 0}
+  .count-item{background:rgba(255,255,255,.14);padding:12px 18px;border-radius:12px;min-width:84px}
+  .count-item .num{font-size:40px;font-weight:700;color:#fff}
+  .count-item .label{font-size:18px;color:rgba(255,255,255,.9)}
 
-  /* ✈️ Airplane (se mantiene para el despegue) */
-  .plane{
-    width:160px;
-    position:absolute;
-    left:-200px;
-    bottom:150px;
-    opacity:0;
-    transition:all 1s linear;
-    z-index:15;
-  }
-  .plane.takeoff{ animation: takeoff 2s ease-in forwards; }
-  .plane.landing{ animation: landing 3s ease-out forwards; }
-  @keyframes takeoff {
-    0% { left:10%; bottom:150px; opacity:1; }
-    100%{ left:120%; bottom:60%; opacity:0; }
-  }
-  @keyframes landing {
-    0% { left:120%; bottom:80%; opacity:1; transform:rotate(10deg); }
-    100% { left:50%; bottom:150px; opacity:1; transform:rotate(0deg) translateX(-50%); }
-  }
+  /* ✈️ Avión SVG (para el despegue) */
+  .plane{width:160px;position:absolute;left:-200px;bottom:150px;opacity:0;transition:all 1s linear;z-index:15}
+  .plane.takeoff{animation:takeoff 2s ease-in forwards}
+  .plane.landing{animation:landing 3s ease-out forwards}
+  @keyframes takeoff{0%{left:10%;bottom:150px;opacity:1}100%{left:120%;bottom:60%;opacity:0}}
+  @keyframes landing{0%{left:120%;bottom:80%;opacity:1;transform:rotate(10deg)}
+                     100%{left:50%;bottom:150px;opacity:1;transform:rotate(0deg) translateX(-50%)}}
 
-  .reveal {
-    margin-top:22px;
-    font-size:36px;
-    font-weight:700;
-    opacity:0;
-    transition: opacity 1s ease 0.6s;
-  }
-  .reveal.show { opacity:1; color:#ff4fa3; text-shadow: 0 5px 18px rgba(0,0,0,0.4) }
+  .reveal{margin-top:22px;font-size:36px;font-weight:700;opacity:0;transition:opacity 1s ease .6s}
+  .reveal.show{opacity:1;color:#ff4fa3;text-shadow:0 5px 18px rgba(0,0,0,.4)}
 
-  canvas#confetti {
-    position:fixed;
-    top:0; left:0;
-    width:100%; height:100%;
-    pointer-events:none;
-    z-index:5;
-  }
+  canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:5}
 
-  /* Botón de prueba visible */
-  .cta{ margin-top:12px; }
-  #manualTrigger{ padding:10px 16px; border-radius:10px; border:0; cursor:pointer }
+  .cta{margin-top:12px}
+  #manualTrigger{padding:10px 16px;border-radius:10px;border:0;cursor:pointer}
 </style>
 </head>
 <body>
-  <div id="pinklandia-bg"></div> <!-- 🌆 Pinklandia background -->
-  <div id="runway-seq"><img alt="secuencia aterrizaje" /></div> <!-- 🎞️ NUEVO -->
+  <div id="pinklandia-bg"></div>
+  <div id="runway-seq"><img alt="secuencia aterrizaje" /></div>
+
+  <!-- 🔊 Audio (reemplaza los src con tus archivos) -->
+  <audio id="snd-ding" src="seatbelt-ding.mp3" preload="auto"></audio>
+  <audio id="snd-engine" src="engine-loop.mp3" preload="auto" loop></audio>
+  <audio id="snd-wind" src="wind-rumble.mp3" preload="auto" loop></audio>
+  <audio id="snd-touch" src="touchdown-thump.mp3" preload="auto"></audio>
+  <audio id="snd-reverse" src="reverse-thrust.mp3" preload="auto"></audio>
 
   <canvas id="confetti"></canvas>
 
@@ -155,7 +104,7 @@
       <div class="count-item"><div class="num" id="seconds">00</div><div class="label">Seg</div></div>
     </div>
 
-    <!-- ✈️ SVG airplane -->
+    <!-- ✈️ SVG -->
     <svg class="plane" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <g fill="#fff">
         <path d="M4 30 L52 18 L56 20 L28 34 L60 38 L56 40 L52 42 L4 30 Z" opacity="0.95"/>
@@ -165,30 +114,40 @@
 
     <div id="revealText" class="reveal">¿Niño o Niña?</div>
 
-    <div class="cta">
-      <button id="manualTrigger">Simular despegue (prueba)</button>
-    </div>
+    <div class="cta"><button id="manualTrigger">Simular despegue (prueba)</button></div>
   </div>
 
 <script>
-  // ⏱️ Ajusta a tu fecha/hora local
-  const eventDate = new Date("2025-09-13T17:00:00");
-
+  const eventDate = new Date("2025-09-13T17:00:00"); // ajusta a tu hora
   const plane = document.querySelector('.plane');
   const runwaySeq = document.getElementById('runway-seq');
   const runwayImg = runwaySeq.querySelector('img');
   let didTrigger = false;
 
-  // 🎞️ Frames de la secuencia (del amanecer a PINKLANDIA)
-  const frames = [
-    "Image (1).jpeg",
-    "Image (2).jpeg",
-    "Image (3).jpeg",
-    "Image (4).jpeg" // ← Pinklandia
-  ];
-  // Preload para evitar flashes
+  // 🎞️ Frames de la secuencia (último = Pinklandia)
+  const frames = ["Image (1).jpeg","Image (2).jpeg","Image (3).jpeg","Image (4).jpeg"];
   frames.forEach(src => { const i = new Image(); i.src = src; });
 
+  // 🔊 utilidades
+  const snd = {
+    ding: document.getElementById('snd-ding'),
+    engine: document.getElementById('snd-engine'),
+    wind: document.getElementById('snd-wind'),
+    touch: document.getElementById('snd-touch'),
+    reverse: document.getElementById('snd-reverse')
+  };
+  function play(a, vol=1){ try{ a.volume=vol; a.currentTime=0; a.play(); }catch(e){} }
+  function fadeInLoop(a, to=1, ms=1500){
+    a.volume=0; a.loop=true; a.currentTime=0; a.play();
+    const step=50; const inc=(to-0)/(ms/step);
+    const id=setInterval(()=>{ a.volume=Math.min(to,a.volume+inc); if(a.volume>=to) clearInterval(id); },step);
+  }
+  function fadeOut(a, ms=1000){
+    const step=50; const dec=a.volume/(ms/step);
+    const id=setInterval(()=>{ a.volume=Math.max(0,a.volume-dec); if(a.volume<=0){a.pause(); clearInterval(id);} },step);
+  }
+
+  // ⏱️ temporizador
   function pad(n){ return String(n).padStart(2,'0'); }
   function updateTimer(){
     const now = new Date();
@@ -198,48 +157,70 @@
     const m = Math.floor(diff/60000)%60;
     const h = Math.floor(diff/3600000)%24;
     const d = Math.floor(diff/86400000);
-    document.getElementById('days').textContent = pad(d);
-    document.getElementById('hours').textContent = pad(h);
-    document.getElementById('minutes').textContent = pad(m);
-    document.getElementById('seconds').textContent = pad(s);
+    days.textContent = pad(d); hours.textContent = pad(h);
+    minutes.textContent = pad(m); seconds.textContent = pad(s);
   }
+  const days=document.getElementById('days'),
+        hours=document.getElementById('hours'),
+        minutes=document.getElementById('minutes'),
+        seconds=document.getElementById('seconds');
 
-  // 🔊 Voz: intenta usar voz masculina es-ES si existe
-  function speakReveal(){
+  // 🎙️ Anuncio de piloto (masculino, grave)
+  function pilotAnnouncement(){
     if(!('speechSynthesis' in window)) return;
-    const utter = new SpeechSynthesisUtterance("¡Es una niña!");
-    utter.lang = "es-ES";
+    const u = new SpeechSynthesisUtterance(
+      "Señoras y señores, les habla su capitán. Bienvenidos a bordo. " +
+      "Estamos listos para el despegue con destino a Pinklandia o Bluelandia. " +
+      "Por favor, abróchense los cinturones. ¡Despegamos!"
+    );
+    u.lang = "es-ES";
+    u.rate = 0.92;   // un poco más pausado
+    u.pitch = 0.85;  // tono más grave
     const male = speechSynthesis.getVoices()
-      .find(v => v.lang.startsWith("es") && /male|varon|hombre|Alejandro|Jorge|Diego/i.test(v.name));
-    if(male) utter.voice = male;
-    window.speechSynthesis.speak(utter);
+      .find(v => v.lang.startsWith("es") && /male|hombre|Alejandro|Jorge|Diego|Miguel/i.test(v.name));
+    if(male) u.voice = male;
+    speechSynthesis.speak(u);
   }
 
-  // 🎞️ Reproduce la secuencia con shaking y bump; llama onDone al finalizar
+  // 🎞️ Aterrizaje con sonidos y sacudida
   function playLandingSequence(onDone){
     runwaySeq.classList.add('show');
     document.body.classList.add('camera-shake');
 
-    let i = 0;
-    const frameTime = 550; // ms entre cuadros (ajusta si quieres más o menos rápido)
+    // Entra sonido ambiente de motores y viento
+    fadeInLoop(snd.engine, 0.45, 1500);
+    fadeInLoop(snd.wind,   0.55, 1500);
 
+    let i = 0;
+    const frameTime = 550; // velocidad del approach
     function next(){
-      runwayImg.src = frames[i];
-      i++;
+      runwayImg.src = frames[i]; i++;
       if(i < frames.length - 1){
         setTimeout(next, frameTime);
       } else {
-        // Último frame es Pinklandia
-        document.body.classList.remove('camera-shake');
-        runwaySeq.classList.add('touchdown-bump');
-        setTimeout(() => onDone && onDone(), 600);
+        document.body.classList.remove('camera-shake');            // deja de temblar
+        runwaySeq.classList.add('touchdown-bump');                 // golpe visual
+        fadeOut(snd.wind, 600);                                    // baja el viento
+        play(snd.touch, 0.9);                                      // 💥 touchdown
+        setTimeout(()=> play(snd.reverse, 0.8), 180);              // ⏱️ reversa
+        setTimeout(()=> fadeOut(snd.engine, 2000), 2200);          // apaga motores
+        setTimeout(()=> onDone && onDone(), 650);
       }
     }
     next();
   }
 
+  function speakReveal(){
+    if(!('speechSynthesis' in window)) return;
+    const utter = new SpeechSynthesisUtterance("¡Es una niña!");
+    utter.lang = "es-ES"; utter.rate = 1; utter.pitch = 1;
+    const male = speechSynthesis.getVoices()
+      .find(v => v.lang.startsWith("es") && /male|hombre|Alejandro|Jorge|Diego/i.test(v.name));
+    if(male) utter.voice = male;
+    window.speechSynthesis.speak(utter);
+  }
+
   function revealPinklandia(){
-    // Texto + confetti + fondos
     const t = document.getElementById('revealText');
     t.textContent = "¡Es una Niña! 💖";
     t.classList.add('show');
@@ -250,59 +231,44 @@
   }
 
   function triggerTakeoff(){
-    if(didTrigger) return;
-    didTrigger = true;
+    if(didTrigger) return; didTrigger = true;
 
-    // Despegue del avioncito
-    plane.classList.add('takeoff');
+    play(snd.ding, 0.9);    // campanilla
+    pilotAnnouncement();    // 🎙️ anuncio de piloto
 
-    // Tras el despegue, iniciamos la secuencia de aterrizaje al frente
+    plane.classList.add('takeoff'); // despega el SVG
+
     setTimeout(()=>{
       plane.classList.remove('takeoff');
-      plane.classList.add('landing'); // opcional, se ve detrás de la secuencia
+      plane.classList.add('landing'); // opcional (queda detrás)
       playLandingSequence(revealPinklandia);
     }, 1600);
   }
 
   document.getElementById('manualTrigger').addEventListener('click', triggerTakeoff);
-  updateTimer();
-  const timerInterval = setInterval(updateTimer, 1000);
+  updateTimer(); const timerInterval = setInterval(updateTimer, 1000);
 
   // 🎉 Confetti
   const confettiCanvas = document.getElementById('confetti');
   const ctx = confettiCanvas.getContext('2d');
-  function resizeCanvas(){
-    confettiCanvas.width = window.innerWidth;
-    confettiCanvas.height = window.innerHeight;
-  }
-  resizeCanvas();
-  window.addEventListener('resize', resizeCanvas);
-
+  function resizeCanvas(){ confettiCanvas.width = innerWidth; confettiCanvas.height = innerHeight; }
+  resizeCanvas(); addEventListener('resize', resizeCanvas);
   let confetti = [];
   function startConfetti(){
     confetti.length = 0;
-    for(let i=0; i<220; i++){
-      confetti.push({
-        x: Math.random()*confettiCanvas.width,
-        y: Math.random()*confettiCanvas.height - confettiCanvas.height,
-        r: Math.random()*6+4,
-        d: Math.random()*20+10,
-        color: "hsl("+(Math.random()*30+330)+",100%,70%)",
-      });
+    for(let i=0;i<220;i++){
+      confetti.push({ x:Math.random()*confettiCanvas.width,
+        y:Math.random()*confettiCanvas.height - confettiCanvas.height,
+        r:Math.random()*6+4, d:Math.random()*20+10,
+        color:"hsl("+(Math.random()*30+330)+",100%,70%)" });
     }
     requestAnimationFrame(drawConfetti);
   }
   function drawConfetti(){
     ctx.clearRect(0,0,confettiCanvas.width,confettiCanvas.height);
     for(let i=0;i<confetti.length;i++){
-      let c = confetti[i];
-      ctx.fillStyle = c.color;
-      ctx.fillRect(c.x, c.y, c.r, c.r);
-      c.y += c.d/20;
-      if(c.y > confettiCanvas.height){
-        c.y = -10;
-        c.x = Math.random()*confettiCanvas.width;
-      }
+      let c=confetti[i]; ctx.fillStyle=c.color; ctx.fillRect(c.x,c.y,c.r,c.r);
+      c.y += c.d/20; if(c.y>confettiCanvas.height){ c.y=-10; c.x=Math.random()*confettiCanvas.width; }
     }
     requestAnimationFrame(drawConfetti);
   }
