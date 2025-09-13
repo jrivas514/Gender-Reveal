@@ -1,4 +1,4 @@
-<!-- build: v-final-en-male -->
+<!-- build: v-final-en-male + big-countdown -->
 <!doctype html>
 <html lang="en">
 <head>
@@ -6,7 +6,10 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Gender Reveal — Landing</title>
 <style>
-  :root{ font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial; }
+  :root{
+    --shake: 0.7px; /* ⬅️ reduce o pon 0px para quitar el shaking */
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;
+  }
   html,body{height:100%;margin:0;background:#000;color:#fff;overflow:hidden}
 
   /* 4 landing frames; last one stays on screen */
@@ -16,20 +19,21 @@
     position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
     opacity:0;transform:scale(1);transition:opacity .8s ease, transform 2.6s ease;
   }
-  #runway-seq img.show{ opacity:1; animation:zoomIn 3.2s forwards, shakeSmall .25s infinite; }
+  #runway-seq img.show{ opacity:1; animation:zoomIn 3.2s forwards, shakeSmall .45s infinite; }
   @keyframes zoomIn{from{transform:scale(1)}to{transform:scale(1.15)}}
+  /* 🔧 shaking MUY sutil */
   @keyframes shakeSmall{
-    0%{transform:translate(0,0) scale(1.05)}
-    25%{transform:translate(-2px,1px) scale(1.06)}
-    50%{transform:translate(2px,-1px) scale(1.07)}
-    75%{transform:translate(-1px,2px) scale(1.08)}
-    100%{transform:translate(0,0) scale(1.09)}
+    0%  {transform:translate(0,0) scale(1.05)}
+    25% {transform:translate(calc(var(--shake)*-1), var(--shake)) scale(1.055)}
+    50% {transform:translate(var(--shake), calc(var(--shake)*-1)) scale(1.06)}
+    75% {transform:translate(calc(var(--shake)*-0.5), calc(var(--shake)*1)) scale(1.065)}
+    100%{transform:translate(0,0) scale(1.07)}
   }
   .touchdown{animation:bump .7s ease-out}
   @keyframes bump{
     0%{transform:translateY(0) scale(1.15)}
-    40%{transform:translateY(12px) scale(1.1)}
-    70%{transform:translateY(-6px) scale(1.12)}
+    40%{transform:translateY(10px) scale(1.11)}
+    70%{transform:translateY(-5px) scale(1.12)}
     100%{transform:translateY(0) scale(1.15)}
   }
 
@@ -54,7 +58,7 @@
   .plane.takeoff{animation:takeoff 2s ease-in forwards}
   @keyframes takeoff{0%{left:10%;bottom:130px;opacity:1}100%{left:120%;bottom:60%;opacity:0}}
 
-  /* Pinklandia background stays visible at reveal */
+  /* Pinklandia background (visible at reveal) */
   #pinklandia-bg{
     position:fixed;inset:0;background:url("pinklandia-city.jpg") bottom center/cover no-repeat;
     opacity:0;transition:opacity 1.6s ease;z-index:1
@@ -74,6 +78,26 @@
     color:#ffe6f2;text-shadow:0 8px 30px rgba(0,0,0,.55), 0 0 10px rgba(255,105,180,.35);
   }
 
+  /* 🔢 Overlay de cuenta regresiva 5-4-3-2-1 */
+  #count-overlay{
+    position:fixed;inset:0;z-index:19;display:none;align-items:center;justify-content:center;
+    background:rgba(0,0,0,.12);
+  }
+  #count-overlay.show{display:flex}
+  #count-num{
+    font-size:clamp(72px,22vw,280px);
+    font-weight:1000; line-height:1; letter-spacing:1px;
+    text-shadow:0 10px 40px rgba(0,0,0,.55);
+    opacity:0; transform:scale(.7);
+  }
+  .count-pop{animation:countPop .9s ease-out}
+  @keyframes countPop{
+    0%{opacity:0;transform:scale(.6)}
+    20%{opacity:1;transform:scale(1.12)}
+    80%{opacity:1;transform:scale(1)}
+    100%{opacity:0;transform:scale(.9)}
+  }
+
   /* Confetti (only starts at the reveal) */
   canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:15}
 </style>
@@ -88,7 +112,7 @@
     <img id="frame3" alt="frame3"/>
   </div>
 
-  <!-- Sounds (optional; if files are missing, it still works) -->
+  <!-- Sounds -->
   <audio id="snd-ding"    src="seatbelt-ding.mp3" preload="auto"></audio>
   <audio id="snd-engine"  src="engine-loop.mp3"    preload="auto" loop></audio>
   <audio id="snd-wind"    src="wind-rumble.mp3"    preload="auto" loop></audio>
@@ -97,9 +121,10 @@
   <audio id="snd-roar"    src="takeoff-roar.mp3"    preload="auto"></audio>
   <audio id="snd-crowd"   src="applause-cheer.mp3"  preload="auto"></audio>
 
-  <!-- Background + Final sign -->
+  <!-- Background + Final sign + Countdown -->
   <div id="pinklandia-bg"></div>
   <div id="only-reveal"><div class="title">It's a Girl! 💖</div></div>
+  <div id="count-overlay"><div id="count-num">5</div></div>
 
   <!-- Start card for preview -->
   <div class="card" id="card">
@@ -153,7 +178,7 @@
   function ensureAC(){if(!AC){AC=new (window.AudioContext||window.webkitAudioContext)();masterG=AC.createGain();masterG.connect(AC.destination);}}
   function randomNoiseBuffer(len=0.18){const n=Math.floor(len*AC.sampleRate);const b=AC.createBuffer(1,n,AC.sampleRate);const d=b.getChannelData(0);for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*(1-i/n);return b;}
   function scheduleClap(t){const s=AC.createBufferSource();s.buffer=randomNoiseBuffer(0.12+Math.random()*0.06);const bp=AC.createBiquadFilter();bp.type='bandpass';bp.frequency.value=1800+Math.random()*1200;bp.Q.value=4;const g=AC.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(1,t+0.01);g.gain.exponentialRampToValueAtTime(0.001,t+0.2);s.connect(bp);bp.connect(g);g.connect(masterG);s.start(t);}
-  function scheduleCheer(start,dur){const src=AC.createBufferSource();const n=AC.createBuffer(1,AC.sampleRate*dur,AC.sampleRate);const d=n.getChannelData(0);let a=0,b0=0;for(let i=0;i<d.length;i++){const w=Math.random()*2-1;a=0.997*a+w*0.03;b0=0.985*b0+a*0.08;d[i]=b0*0.3;}src.buffer=n;const g=AC.createGain();g.gain.setValueAtTime(0,start);g.gain.linearRampToValueAtTime(0.45,start+0.5);g.gain.linearRampToValueAtTime(0.0,start+dur);src.connect(g);g.connect(masterG);src.start(start);src.stop(start+dur+0.1);}
+  function scheduleCheer(start,dur){const src=AC.createBufferSource();const n=AC.createBuffer(1,AC.sampleRate*dur,AC.sampleRate);const d=n.getChannelData(0);let a=0,b0=0;for(let i=0;i<d.length;i++){const w=Math.random()*2-1;a=0.997*a+w*0.03;b0=0.985*b0+a*0.08;d[i]=b0*0.3;}src.buffer=n;const g=AC.createGain();g.gain.setValueAtTime(0,start);g.gain.linearRampToValueAtTime(0.48,start+0.5);g.gain.linearRampToValueAtTime(0.0,start+dur);src.connect(g);g.connect(masterG);src.start(start);src.stop(start+dur+0.1);}
   function applauseFallback(ms=7000){
     ensureAC(); if(AC.state==='suspended') AC.resume();
     const now=AC.currentTime+0.02; const dur=ms/1000;
@@ -174,26 +199,23 @@
     }
   }
 
-  /* ======= Countdown (preview) ======= */
+  /* ======= Countdown (preview card) ======= */
   const days=document.getElementById('days'),hours=document.getElementById('hours'),minutes=document.getElementById('minutes'),seconds=document.getElementById('seconds');
   function pad(n){return String(n).padStart(2,'0');}
   function tick(){
     const now=new Date();const diff=eventDate-now;
-    if(diff<=0){ /* we could auto-trigger here if desired */ return; }
+    if(diff<=0){ return; }
     const s=Math.floor(diff/1000)%60,m=Math.floor(diff/60000)%60,h=Math.floor(diff/3600000)%24,d=Math.floor(diff/86400000);
     days.textContent=pad(d);hours.textContent=pad(h);minutes.textContent=pad(m);seconds.textContent=pad(s);
   }
   const tmr=setInterval(tick,1000); tick();
 
-  /* ======= Voice loading helper ======= */
-  // Force load voices list early
+  /* ======= Voice helpers ======= */
   speechSynthesis.getVoices();
   function runAfterVoices(cb){
     if (speechSynthesis.getVoices().length) cb();
     else speechSynthesis.addEventListener('voiceschanged', () => cb(), { once:true });
   }
-
-  /* ======= Pick male English voice ======= */
   function pickMaleEnVoice(){
     const voices = speechSynthesis.getVoices();
     const preferred = /(Alex|Daniel|Matthew|James|George|Ryan|Male|Google UK English Male|Microsoft (David|Guy|Mark))/i;
@@ -209,7 +231,7 @@
     });
   }
 
-  /* ======= Captain (male English only) ======= */
+  /* ======= Captain (male English) ======= */
   async function captainAnnouncement(){
     await speak("Ladies and gentlemen, this is your captain speaking. Welcome aboard.", {rate:0.84, pitch:0.95});
     await speak("We are ready for departure to Pinklandia, or Bluelandia.", {rate:0.84, pitch:0.95});
@@ -219,29 +241,24 @@
     await speak("We are taking off.", {rate:0.82, pitch:0.94});
   }
 
-  /* ======= Reveal shouts (male, less robotic) ======= */
+  /* ======= Reveal shouts (male) ======= */
   function speakReveal(){
-    // Short phrases + small pauses + moderate pitch (male)
     const say = (t, d=0, r=1.06, p=0.98)=> setTimeout(()=> speak(t,{rate:r,pitch:p}), d);
     say("It's a...", 0, 1.02, 0.96);
-    say("Girl!", 380, 1.1, 1.0);            // main hit
+    say("Girl!", 380, 1.1, 1.0);
     say("Congratulations!", 1250, 1.04, 0.98);
-    // subtle echo (male)
     say("It's a girl!", 2000, 1.08, 0.98);
   }
 
   /* ======= Landing sequence ======= */
-  function playLandingSequence(done){
+  function playLandingSequence(afterTouchdown){
     const seq=document.getElementById('runway-seq');
     seq.classList.add('show');
+    try{ snd.engine.volume=.35; snd.engine.play(); }catch(e){}
+    try{ snd.wind.volume=.45; snd.wind.play(); }catch(e){}
+    play(snd.roar,.58);
 
-    // ambience
-    try{ snd.engine.volume=.4; snd.engine.play(); }catch(e){}
-    try{ snd.wind.volume=.5; snd.wind.play(); }catch(e){}
-    play(snd.roar,.6);
-
-    // Timings extended so frames cover captain + transition (~8.6s)
-    const times=[1600,2000,2300,3200];
+    const times=[1600,2000,2300,3200]; // total ~9.1s
     frames.forEach((_,i)=>{
       const img=document.getElementById("frame"+i);
       setTimeout(()=>{
@@ -252,14 +269,36 @@
           setTimeout(()=>{
             play(snd.touch,.95);
             setTimeout(()=>play(snd.reverse,.9),150);
-            done && done();          // trigger reveal right after touchdown
+            afterTouchdown && afterTouchdown();  // ⬅️ arranca countdown
           },700);
         }
       }, times.slice(0,i+1).reduce((a,b)=>a+b,0));
     });
   }
 
-  /* ======= Confetti (starts only at reveal) ======= */
+  /* ======= Big 5-4-3-2-1 before reveal ======= */
+  function startRevealCountdown(done){
+    const overlay = document.getElementById('count-overlay');
+    const numEl   = document.getElementById('count-num');
+    overlay.classList.add('show');
+    let n = 5;
+    const stepMs = 900; // tempo de conteo
+    function tick(){
+      numEl.textContent = n;
+      numEl.classList.remove('count-pop'); void numEl.offsetWidth; // reflow
+      numEl.classList.add('count-pop');
+      if(n>1){ n--; setTimeout(tick, stepMs); }
+      else{
+        setTimeout(()=>{
+          overlay.classList.remove('show');
+          done && done();
+        }, stepMs);
+      }
+    }
+    tick();
+  }
+
+  /* ======= Confetti ======= */
   const confettiCanvas=document.getElementById('confetti');const ctx=confettiCanvas.getContext('2d');
   function resizeCanvas(){confettiCanvas.width=innerWidth;confettiCanvas.height=innerHeight;}
   resizeCanvas();addEventListener('resize',resizeCanvas);
@@ -282,12 +321,12 @@
 
   /* ======= Reveal (keep confetti & background) ======= */
   function showFinal(){
-    pinkBG.classList.add('show');          // background visible
-    card.classList.add('hide-out');        // only hide the card
-    document.getElementById('only-reveal').classList.add('show'); // big sign
-    startConfetti();                       // confetti ONLY now
-    speakReveal();                         // male voice
-    playApplauseGuaranteed();              // applause (file or fallback)
+    pinkBG.classList.add('show');
+    card.classList.add('hide-out');
+    document.getElementById('only-reveal').classList.add('show');
+    startConfetti();
+    speakReveal();
+    playApplauseGuaranteed();
     setTimeout(()=>{ try{ fadeOut(snd.wind,1200); fadeOut(snd.engine,1800); }catch(e){} }, 1500);
   }
 
@@ -295,25 +334,18 @@
   function trigger(){
     try{ ensureAC(); if(AC.state==='suspended') AC.resume(); }catch(e){}
     play(snd.ding,.9);
-    captainAnnouncement();                 // ~5–6s
+    captainAnnouncement();
     plane.classList.add('takeoff');
     setTimeout(()=>{
       plane.classList.remove('takeoff');
-      playLandingSequence(showFinal);      // ~8.6s; reveal right after
+      playLandingSequence(()=> startRevealCountdown(showFinal));
     }, 1600);
   }
 
-  // Force load voices list early (again)
-  speechSynthesis.getVoices();
-
-  // Run only after voices are ready — both for the button and for scheduled start
+  // ready after voices load
   document.getElementById('manualTrigger').addEventListener('click', () => {
     runAfterVoices(trigger);
   });
-
-  // Optional: auto trigger at event time (also waits for voices)
-  function checkTime(){ if(new Date()>=eventDate){ runAfterVoices(trigger); clearInterval(checker);} }
-  const checker=setInterval(checkTime,10000);
 </script>
 </body>
 </html>
