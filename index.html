@@ -1,3 +1,4 @@
+<!-- build: v-final-en-male -->
 <!doctype html>
 <html lang="en">
 <head>
@@ -301,6 +302,9 @@
       playLandingSequence(showFinal);      // ~8.6s; reveal right after
     }, 1600);
   }
+
+  // Force load voices list early (again)
+  speechSynthesis.getVoices();
 
   // Run only after voices are ready — both for the button and for scheduled start
   document.getElementById('manualTrigger').addEventListener('click', () => {
