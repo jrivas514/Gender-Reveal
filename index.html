@@ -1,4 +1,4 @@
-<!-- build: v-final-en-male + big-countdown + hold-before-pink -->
+<!-- build: v-final-en-male + big-countdown + hold-before-pink + zoomPink -->
 <!doctype html>
 <html lang="en">
 <head>
@@ -7,7 +7,7 @@
 <title>Gender Reveal — Landing</title>
 <style>
   :root{
-    --shake: 0.7px; /* reduce o pon 0px para quitar el shaking */
+    --shake: 0px; /* ⬅️ 0px = sin shaking; prueba 0.3px o 0.7px si quieres un leve temblor */
     font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;
   }
   html,body{height:100%;margin:0;background:#000;color:#fff;overflow:hidden}
@@ -22,7 +22,7 @@
   }
   #runway-seq img.show{ opacity:1; animation:zoomIn 3.2s forwards, shakeSmall .45s infinite; }
   @keyframes zoomIn{from{transform:scale(1)}to{transform:scale(1.15)}}
-  /* Shaking muy sutil */
+  /* Shaking (apagado si --shake: 0px) */
   @keyframes shakeSmall{
     0%  {transform:translate(0,0) scale(1.05)}
     25% {transform:translate(calc(var(--shake)*-1), var(--shake)) scale(1.055)}
@@ -59,13 +59,26 @@
   .plane.takeoff{animation:takeoff 2s ease-in forwards}
   @keyframes takeoff{0%{left:10%;bottom:130px;opacity:1}100%{left:120%;bottom:60%;opacity:0}}
 
-  /* Fondo Pinklandia (solo en el reveal) */
+  /* Fondo Pinklandia (solo en el reveal) con ZOOM-IN */
   #pinklandia-bg{
-    position:fixed;inset:0;background:url("pinklandia-city.jpg") bottom center/cover no-repeat;
-    opacity:0;transition:opacity 1.6s ease;z-index:1
+    position:fixed;inset:0;
+    background:url("pinklandia-city.jpg") bottom center/cover no-repeat;
+    opacity:0;transition:opacity 1.6s ease;z-index:1;
+    transform: scale(1);                 /* base para zoom */
+    transform-origin: center bottom;      /* empuje desde el horizonte */
+    will-change: transform, opacity;
   }
-  #pinklandia-bg.show{opacity:1;animation:panCity 20s linear infinite alternate}
+  #pinklandia-bg.show{
+    opacity:1;
+    animation:
+      panCity 20s linear infinite alternate,
+      zoomPink 3.2s ease-out forwards;   /* ⬅️ zoom al aparecer */
+  }
   @keyframes panCity{0%{background-position:bottom left}100%{background-position:bottom right}}
+  @keyframes zoomPink{
+    from{ transform: scale(1); }
+    to  { transform: scale(1.12); }      /* ajusta a 1.10–1.15 según gusto */
+  }
 
   /* Letrero final */
   #only-reveal{
@@ -91,7 +104,7 @@
     text-shadow:0 10px 40px rgba(0,0,0,.55);
     opacity:0; transform:scale(.7);
   }
-  .count-pop{animation:countPop .9s ease-out}
+  .count-pop{animation:countPop 1s ease-out}
   @keyframes countPop{
     0%{opacity:0;transform:scale(.6)}
     20%{opacity:1;transform:scale(1.12)}
@@ -200,16 +213,16 @@
     }
   }
 
-  /* ======= Countdown (tarjeta) ======= */
+  /* ======= Countdown de la tarjeta ======= */
   const days=document.getElementById('days'),hours=document.getElementById('hours'),minutes=document.getElementById('minutes'),seconds=document.getElementById('seconds');
   function pad(n){return String(n).padStart(2,'0');}
-  function tick(){
+  function tickCard(){
     const now=new Date();const diff=eventDate-now;
     if(diff<=0){ return; }
     const s=Math.floor(diff/1000)%60,m=Math.floor(diff/60000)%60,h=Math.floor(diff/3600000)%24,d=Math.floor(diff/86400000);
     days.textContent=pad(d);hours.textContent=pad(h);minutes.textContent=pad(m);seconds.textContent=pad(s);
   }
-  const tmr=setInterval(tick,1000); tick();
+  const tmr=setInterval(tickCard,1000); tickCard();
 
   /* ======= Voz (masculina en inglés) ======= */
   speechSynthesis.getVoices();
@@ -278,8 +291,8 @@
   }
 
   /* ======= Cuenta 5-4-3-2-1 antes del reveal ======= */
-  const COUNT_STEP_MS = 900;               // velocidad del conteo (900ms por número)
-  const HOLD_BEFORE_COUNTDOWN = 1500;      // ⬅️ pausa extra en la pista ANTES del 5
+  const COUNT_STEP_MS = 1000;               // velocidad del conteo (1s por número)
+  const HOLD_BEFORE_COUNTDOWN = 2500;       // ⬅️ pausa extra en la pista ANTES del "5" (2.5s)
   function startRevealCountdown(done){
     const overlay = document.getElementById('count-overlay');
     const numEl   = document.getElementById('count-num');
@@ -323,9 +336,9 @@
 
   /* ======= Reveal (Pinklandia + letrero + confetti) ======= */
   function showFinal(){
-    // fundimos la pista y traemos Pinklandia para que no se vea con el conteo
+    // Fundimos la pista y traemos Pinklandia con zoom, un beat después del conteo
     document.getElementById('runway-seq').classList.add('fade-out');
-    setTimeout(()=>{ pinkBG.classList.add('show'); }, 300);
+    setTimeout(()=>{ pinkBG.classList.add('show'); }, 800); // ⬅️ entra Pinklandia un poquito después
 
     card.classList.add('hide-out');
     document.getElementById('only-reveal').classList.add('show');
@@ -343,7 +356,7 @@
     plane.classList.add('takeoff');
     setTimeout(()=>{
       plane.classList.remove('takeoff');
-      // ⬇️ Tras el touchdown, mostramos la pista un rato y recién ahí arrancamos el 5-4-3-2-1
+      // Tras el touchdown, mostramos la pista un rato y recién ahí arrancamos el 5-4-3-2-1
       playLandingSequence(()=> setTimeout(()=> startRevealCountdown(showFinal), HOLD_BEFORE_COUNTDOWN));
     }, 1600);
   }
