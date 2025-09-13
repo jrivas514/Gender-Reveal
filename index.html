@@ -269,7 +269,7 @@
     play(snd.roar,.58);
 
     const preCountFrames = 3; // 0,1,2
-    const times=[1600,2000,2300]; // ~5.9s total para 3 frames
+    const times=[1800,2100,2500]; // ~5.9s total para 3 frames
     for(let i=0;i<preCountFrames;i++){
       const img=document.getElementById("frame"+i);
       const at = times.slice(0,i+1).reduce((a,b)=>a+b,0);
