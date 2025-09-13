@@ -26,10 +26,14 @@
   #pinklandia-bg.show{opacity:1;animation:panCity 20s linear infinite alternate}
   @keyframes panCity{0%{background-position:bottom left}100%{background-position:bottom right}}
 
-  /* 🎞️ Secuencia de aterrizaje (frames) */
+  /* 🎞️ Secuencia de aterrizaje con crossfade */
   #runway-seq{position:fixed;inset:0;z-index:2;opacity:0;transition:opacity .4s ease;background:#000}
   #runway-seq.show{opacity:1}
-  #runway-seq img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  #runway-seq .frame{
+    position:absolute; inset:0; width:100%; height:100%;
+    object-fit:cover; opacity:0; transition:opacity .6s ease;
+  }
+  #runway-seq .frame.show{ opacity:1; }
 
   /* 🤢 Turbulencia */
   @keyframes shake{
@@ -58,7 +62,8 @@
   }
   h1{margin:6px 0 4px;font-size:50px;color:#fff}
   .subtitle{color:rgba(255,255,255,.9);margin-bottom:18px}
-  .countdown{display:flex;gap:12px;justify-content:center;margin:18px 0}
+  .countdown{display:flex;gap:12px;justify-content:center;margin:18px 0;transition:opacity 0.8s ease;}
+  .countdown.hide{opacity:0;}
   .count-item{background:rgba(255,255,255,.14);padding:12px 18px;border-radius:12px;min-width:84px}
   .count-item .num{font-size:40px;font-weight:700;color:#fff}
   .count-item .label{font-size:18px;color:rgba(255,255,255,.9)}
@@ -77,14 +82,17 @@
   canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:5}
 
   .cta{margin-top:12px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap}
-  #manualTrigger, #muteBtn{padding:10px 16px;border-radius:10px;border:0;cursor:pointer}
+  #manualTrigger{padding:10px 16px;border-radius:10px;border:0;cursor:pointer}
 </style>
 </head>
 <body>
   <div id="pinklandia-bg"></div>
-  <div id="runway-seq"><img alt="secuencia aterrizaje" /></div>
+  <div id="runway-seq">
+    <img class="frame a" alt="frame a"/>
+    <img class="frame b" alt="frame b"/>
+  </div>
 
-  <!-- 🔊 Audio -->
+  <!-- 🔊 Sonidos base -->
   <audio id="snd-ding"    src="seatbelt-ding.mp3" preload="auto"></audio>
   <audio id="snd-engine"  src="engine-loop.mp3"    preload="auto" loop></audio>
   <audio id="snd-wind"    src="wind-rumble.mp3"    preload="auto" loop></audio>
@@ -114,29 +122,21 @@
     </svg>
 
     <div id="revealText" class="reveal">¿Niño o Niña?</div>
-
-    <div class="cta">
-      <button id="manualTrigger">Simular despegue (prueba)</button>
-      <button id="muteBtn" aria-pressed="false">🔊 Audio: ON</button>
-    </div>
+    <div class="cta"><button id="manualTrigger">Simular despegue (prueba)</button></div>
   </div>
 
 <script>
-  // ⏱️ Ajusta a tu hora local (America/New_York): Sep 13, 2025 17:00
   const eventDate = new Date("2025-09-13T17:00:00");
 
   const plane = document.querySelector('.plane');
   const runwaySeq = document.getElementById('runway-seq');
-  const runwayImg = runwaySeq.querySelector('img');
-  const muteBtn = document.getElementById('muteBtn');
-  let didTrigger = false;
-  let isMuted = false;
+  const imgA = runwaySeq.querySelector('.frame.a');
+  const imgB = runwaySeq.querySelector('.frame.b');
+  let useA = true, didTrigger=false;
 
-  // 🎞️ Frames (último = Pinklandia)
   const frames = ["Image (1).jpeg","Image (2).jpeg","Image (3).jpeg","Image (4).jpeg"];
-  frames.forEach(src => { const i = new Image(); i.src = src; });
+  frames.forEach(src => { const i=new Image(); i.src=src; });
 
-  // 🔊 sonidos
   const snd = {
     ding: document.getElementById('snd-ding'),
     engine: document.getElementById('snd-engine'),
@@ -145,180 +145,111 @@
     reverse: document.getElementById('snd-reverse'),
     roar: document.getElementById('snd-roar')
   };
-  function applyMute(){ Object.values(snd).forEach(a => a.muted = isMuted); }
-  function play(a, vol=1){
-    try{ a.volume=vol; a.currentTime=0; a.play(); }catch(e){}
-  }
-  function fadeInLoop(a, to=1, ms=1500){
-    try{
-      a.volume=0; a.loop=true; a.currentTime=0; a.play();
-      const step=50; const inc=(to-0)/(ms/step);
-      const id=setInterval(()=>{ a.volume=Math.min(to,a.volume+inc); if(a.volume>=to) clearInterval(id); },step);
-    }catch(e){}
-  }
-  function fadeOut(a, ms=1000){
-    try{
-      const step=50; const dec=a.volume/(ms/step);
-      const id=setInterval(()=>{ a.volume=Math.max(0,a.volume-dec); if(a.volume<=0){a.pause(); clearInterval(id);} },step);
-    }catch(e){}
-  }
+  function play(a,vol=1){ try{a.volume=vol;a.currentTime=0;a.play();}catch(e){} }
+  function fadeInLoop(a,to=1,ms=1500){a.volume=0;a.loop=true;a.currentTime=0;a.play();const step=50,inc=(to-0)/(ms/step);const id=setInterval(()=>{a.volume=Math.min(to,a.volume+inc);if(a.volume>=to)clearInterval(id);},step);}
+  function fadeOut(a,ms=1000){const step=50,dec=a.volume/(ms/step);const id=setInterval(()=>{a.volume=Math.max(0,a.volume-dec);if(a.volume<=0){a.pause();clearInterval(id);} },step);}
 
-  // ⏱️ contador
-  function pad(n){ return String(n).padStart(2,'0'); }
+  function pad(n){return String(n).padStart(2,'0');}
   function updateTimer(){
-    const now = new Date();
-    const diff = eventDate - now;
-    if(diff <= 0){ triggerTakeoff(); clearInterval(timerInterval); return; }
-    const s = Math.floor(diff/1000)%60;
-    const m = Math.floor(diff/60000)%60;
-    const h = Math.floor(diff/3600000)%24;
-    const d = Math.floor(diff/86400000);
-    days.textContent = pad(d); hours.textContent = pad(h);
-    minutes.textContent = pad(m); seconds.textContent = pad(s);
+    const now=new Date();const diff=eventDate-now;
+    if(diff<=0){triggerTakeoff();clearInterval(timerInterval);return;}
+    const s=Math.floor(diff/1000)%60,m=Math.floor(diff/60000)%60,h=Math.floor(diff/3600000)%24,d=Math.floor(diff/86400000);
+    days.textContent=pad(d);hours.textContent=pad(h);minutes.textContent=pad(m);seconds.textContent=pad(s);
   }
-  const days=document.getElementById('days'),
-        hours=document.getElementById('hours'),
-        minutes=document.getElementById('minutes'),
-        seconds=document.getElementById('seconds');
+  const days=document.getElementById('days'),hours=document.getElementById('hours'),minutes=document.getElementById('minutes'),seconds=document.getElementById('seconds');
 
-  // 🎙️ Anuncio de piloto (ES + EN) con pausa larga y rugido
   function pilotAnnouncement(){
-    if(!('speechSynthesis' in window)) return;
-
-    const speak = (text, {rate=0.84, pitch=0.8, lang="es-ES"}={}) => new Promise(resolve=>{
-      const u = new SpeechSynthesisUtterance(text);
-      u.lang = lang; u.rate = rate; u.pitch = pitch;
-      const voices = speechSynthesis.getVoices();
-      const male = voices.find(v => v.lang.startsWith(lang.slice(0,2)) && /male|hombre|Alejandro|Jorge|Diego|Miguel|Enrique|Jose|Male/i.test(v.name));
-      if(male) u.voice = male;
-      u.onend = resolve;
-      speechSynthesis.speak(u);
+    if(!('speechSynthesis'in window))return;
+    const speak=(text,{rate=0.84,pitch=0.8,lang="es-ES"}={})=>new Promise(res=>{
+      const u=new SpeechSynthesisUtterance(text);
+      u.lang=lang;u.rate=rate;u.pitch=pitch;
+      u.onend=res;speechSynthesis.speak(u);
     });
-
     (async ()=>{
-      await speak("Señoras y señores, les habla su capitán. Bienvenidos a bordo. Estamos listos para salir con destino a Pinklandia o Bluelandia.", {rate:0.82, pitch:0.78, lang:"es-ES"});
-      await new Promise(r=>setTimeout(r, 1400)); // pausa larga
-      play(snd.roar, 0.9);                        // rugido entre la pausa y el despegue
-      await new Promise(r=>setTimeout(r, 900));
-      await speak("¡Despegamos!", {rate:0.78, pitch:0.72, lang:"es-ES"});
-
-      await new Promise(r=>setTimeout(r, 600));
-      await speak("Ladies and gentlemen, this is your captain speaking. Welcome aboard. We are ready for departure to Pinklandia or Bluelandia.", {rate:0.84, pitch:0.80, lang:"en-US"});
-      await new Promise(r=>setTimeout(r, 800));
-      await speak("We are taking off!", {rate:0.82, pitch:0.78, lang:"en-US"});
+      await speak("Señoras y señores, les habla su capitán. Bienvenidos a bordo. Estamos listos para salir con destino a Pinklandia o Bluelandia.",{rate:0.82,pitch:0.78,lang:"es-ES"});
+      await new Promise(r=>setTimeout(r,1600));
+      play(snd.roar,0.9);
+      await new Promise(r=>setTimeout(r,1000));
+      await speak("¡Despegamos!",{rate:0.78,pitch:0.72,lang:"es-ES"});
+      await new Promise(r=>setTimeout(r,700));
+      await speak("Ladies and gentlemen, this is your captain speaking. Welcome aboard. We are ready for departure to Pinklandia or Bluelandia.",{rate:0.84,pitch:0.80,lang:"en-US"});
+      await new Promise(r=>setTimeout(r,800));
+      await speak("We are taking off!",{rate:0.82,pitch:0.78,lang:"en-US"});
     })();
   }
 
-  // 🎞️ Aterrizaje más lento + sincronía de sonidos
   function playLandingSequence(onDone){
     runwaySeq.classList.add('show');
     document.body.classList.add('camera-shake');
+    fadeInLoop(snd.engine,0.40,1500); fadeInLoop(snd.wind,0.50,1500); play(snd.roar,0.55);
 
-    fadeInLoop(snd.engine, 0.40, 1500);
-    fadeInLoop(snd.wind,   0.50, 1500);
-    play(snd.roar, 0.6); // rugido suave al inicio del approach
-
-    let i = 0;
-    const frameTime = 750; // más lento para dramatismo
+    let i=0;const frameDur=[1200,1400,1600,1900];
+    function showFrame(index){
+      const src=frames[index];
+      if(useA){imgA.src=src;imgA.classList.add('show');imgB.classList.remove('show');}
+      else{imgB.src=src;imgB.classList.add('show');imgA.classList.remove('show');}
+      useA=!useA;
+    }
     function next(){
-      runwayImg.src = frames[i]; i++;
-      if(i < frames.length - 1){
-        setTimeout(next, frameTime);
-      } else {
+      showFrame(i);const dur=frameDur[Math.min(i,frameDur.length-1)];i++;
+      if(i<frames.length){setTimeout(next,dur);}else{
         document.body.classList.remove('camera-shake');
         runwaySeq.classList.add('touchdown-bump');
-        fadeOut(snd.wind, 600);
-        play(snd.touch, 0.9);                 // 💥 touchdown
-        setTimeout(()=> play(snd.reverse, 0.85), 120); // reversa casi inmediata
-        setTimeout(()=> fadeOut(snd.engine, 2000), 2000);
-        setTimeout(()=> onDone && onDone(), 700);
+        fadeOut(snd.wind,600); play(snd.touch,0.95); setTimeout(()=>play(snd.reverse,0.9),120);
+        setTimeout(()=>fadeOut(snd.engine,2000),2000); setTimeout(()=>onDone&&onDone(),800);
       }
     }
-    setTimeout(next, 900); // pequeño margen antes del primer frame
+    setTimeout(()=>{showFrame(0);i=1;setTimeout(next,frameDur[0]);},700);
   }
 
-  // 🔊 Revelación con más ánimo (ES + EN)
   function speakReveal(){
-    if(!('speechSynthesis' in window)) return;
-
-    const shout = (text, {lang="es-ES", rate=1.1, pitch=1.2}={}) => {
-      const u = new SpeechSynthesisUtterance(text);
-      u.lang = lang; u.rate = rate; u.pitch = pitch;
-      const voices = speechSynthesis.getVoices();
-      const v = voices.find(v => v.lang.startsWith(lang.slice(0,2)) && /male|hombre|Alejandro|Jorge|Diego|Miguel|Enrique|Jose|Male/i.test(v.name));
-      if(v) u.voice = v;
-      window.speechSynthesis.speak(u);
+    if(!('speechSynthesis'in window))return;
+    const shout=(text,{lang="es-ES",rate=1.15,pitch=1.25,delay=0}={})=>{
+      setTimeout(()=>{
+        const u=new SpeechSynthesisUtterance(text);
+        u.lang=lang;u.rate=rate;u.pitch=pitch;
+        speechSynthesis.speak(u);
+      },delay);
     };
-
-    shout("¡Es una niña! ¡Felicidades!", {lang:"es-ES", rate:1.15, pitch:1.3});
-    setTimeout(()=> shout("It's a girl! Congratulations!", {lang:"en-US", rate:1.05, pitch:1.2}), 900);
+    // 🎤 Español con eco
+    shout("¡¡¡ES UNA NIÑA!!!",{lang:"es-ES",rate:1.2,pitch:1.35});
+    shout("¡FELICIDADES!",{lang:"es-ES",rate:1.15,pitch:1.2,delay:900});
+    shout("¡¡¡NIÑA!!!",{lang:"es-ES",rate:1.25,pitch:1.4,delay:1600});
+    // 🎤 Inglés con entusiasmo
+    shout("IT'S A GIRL!",{lang:"en-US",rate:1.18,pitch:1.3,delay:2400});
+    shout("CONGRATULATIONS!",{lang:"en-US",rate:1.12,pitch:1.2,delay:3300});
   }
 
   function revealPinklandia(){
-    const t = document.getElementById('revealText');
-    t.textContent = "¡Es una Niña! 💖";
+    // Oculta temporizador
+    const countdown=document.getElementById('countdown');
+    countdown.classList.add('hide');
+    setTimeout(()=> countdown.style.display="none",900);
+
+    const t=document.getElementById('revealText');
+    t.textContent="¡Es una Niña! 💖";
     t.classList.add('show');
-    document.body.style.background = "#ffd6e8";
+    document.body.style.background="#ffd6e8";
     document.getElementById('pinklandia-bg').classList.add('show');
-    startConfetti();
-    speakReveal();
+    startConfetti(); speakReveal();
   }
 
   function triggerTakeoff(){
-    if(didTrigger) return; didTrigger = true;
-
-    applyMute(); // respeta el estado del botón
-    play(snd.ding, 0.9);    // campanilla
-    pilotAnnouncement();    // 🎙️ anuncio de piloto
-
-    plane.classList.add('takeoff'); // despega el SVG
-
-    setTimeout(()=>{
-      plane.classList.remove('takeoff');
-      plane.classList.add('landing'); // opcional (queda detrás)
-      playLandingSequence(revealPinklandia);
-    }, 1600);
+    if(didTrigger) return; didTrigger=true;
+    play(snd.ding,0.9); pilotAnnouncement();
+    plane.classList.add('takeoff');
+    setTimeout(()=>{plane.classList.remove('takeoff');plane.classList.add('landing');playLandingSequence(revealPinklandia);},1600);
   }
 
-  document.getElementById('manualTrigger').addEventListener('click', ()=>{
-    // El clic desbloquea audio en móviles
-    applyMute();
-    triggerTakeoff();
-  });
-
-  // Botón Mute/Unmute
-  muteBtn.addEventListener('click', ()=>{
-    isMuted = !isMuted; applyMute();
-    muteBtn.textContent = isMuted ? "🔇 Audio: OFF" : "🔊 Audio: ON";
-    muteBtn.setAttribute('aria-pressed', String(!isMuted));
-  });
-
-  updateTimer(); const timerInterval = setInterval(updateTimer, 1000);
+  document.getElementById('manualTrigger').addEventListener('click', triggerTakeoff);
+  updateTimer(); const timerInterval=setInterval(updateTimer,1000);
 
   // 🎉 Confetti
-  const confettiCanvas = document.getElementById('confetti');
-  const ctx = confettiCanvas.getContext('2d');
-  function resizeCanvas(){ confettiCanvas.width = innerWidth; confettiCanvas.height = innerHeight; }
-  resizeCanvas(); addEventListener('resize', resizeCanvas);
-  let confetti = [];
-  function startConfetti(){
-    confetti.length = 0;
-    for(let i=0;i<220;i++){
-      confetti.push({ x:Math.random()*confettiCanvas.width,
-        y:Math.random()*confettiCanvas.height - confettiCanvas.height,
-        r:Math.random()*6+4, d:Math.random()*20+10,
-        color:"hsl("+(Math.random()*30+330)+",100%,70%)" });
-    }
-    requestAnimationFrame(drawConfetti);
-  }
-  function drawConfetti(){
-    ctx.clearRect(0,0,confettiCanvas.width,confettiCanvas.height);
-    for(let i=0;i<confetti.length;i++){
-      let c=confetti[i]; ctx.fillStyle=c.color; ctx.fillRect(c.x,c.y,c.r,c.r);
-      c.y += c.d/20; if(c.y>confettiCanvas.height){ c.y=-10; c.x=Math.random()*confettiCanvas.width; }
-    }
-    requestAnimationFrame(drawConfetti);
-  }
+  const confettiCanvas=document.getElementById('confetti');const ctx=confettiCanvas.getContext('2d');
+  function resizeCanvas(){confettiCanvas.width=innerWidth;confettiCanvas.height=innerHeight;}
+  resizeCanvas();addEventListener('resize',resizeCanvas);
+  let confetti=[];function startConfetti(){confetti.length=0;for(let i=0;i<220;i++){confetti.push({x:Math.random()*confettiCanvas.width,y:Math.random()*confettiCanvas.height-confettiCanvas.height,r:Math.random()*6+4,d:Math.random()*20+10,color:"hsl("+(Math.random()*30+330)+",100%,70%)"});}requestAnimationFrame(drawConfetti);}
+  function drawConfetti(){ctx.clearRect(0,0,confettiCanvas.width,confettiCanvas.height);for(let i=0;i<confetti.length;i++){let c=confetti[i];ctx.fillStyle=c.color;ctx.fillRect(c.x,c.y,c.r,c.r);c.y+=c.d/20;if(c.y>confettiCanvas.height){c.y=-10;c.x=Math.random()*confettiCanvas.width;}}requestAnimationFrame(drawConfetti);}
 </script>
 </body>
 </html>
