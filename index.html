@@ -1,4 +1,4 @@
-<!-- build: v-final-en-male + big-countdown + hold-before-pink + zoomPink -->
+<!-- build: v-final-en-male + big-countdown + img4-after-count + zoomPink -->
 <!doctype html>
 <html lang="en">
 <head>
@@ -7,12 +7,12 @@
 <title>Gender Reveal — Landing</title>
 <style>
   :root{
-    --shake: 0px; /* ⬅️ 0px = sin shaking; prueba 0.3px o 0.7px si quieres un leve temblor */
+    --shake: 0px; /* 0px = sin shaking; usa 0.3px/0.7px para leve temblor */
     font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;
   }
   html,body{height:100%;margin:0;background:#000;color:#fff;overflow:hidden}
 
-  /* Secuencia de 4 imágenes (la última queda en pantalla) */
+  /* Secuencia de pista (la última visible ANTES del conteo será la #3, Image (3).jpeg) */
   #runway-seq{position:fixed;inset:0;z-index:0;opacity:0;transition:opacity .4s ease;background:#000;overflow:hidden}
   #runway-seq.show{opacity:1}
   #runway-seq.fade-out{opacity:0;transition:opacity .8s ease}
@@ -22,7 +22,6 @@
   }
   #runway-seq img.show{ opacity:1; animation:zoomIn 3.2s forwards, shakeSmall .45s infinite; }
   @keyframes zoomIn{from{transform:scale(1)}to{transform:scale(1.15)}}
-  /* Shaking (apagado si --shake: 0px) */
   @keyframes shakeSmall{
     0%  {transform:translate(0,0) scale(1.05)}
     25% {transform:translate(calc(var(--shake)*-1), var(--shake)) scale(1.055)}
@@ -38,7 +37,7 @@
     100%{transform:translateY(0) scale(1.15)}
   }
 
-  /* Tarjeta inicial (solo para el botón de prueba) */
+  /* Tarjeta/botón de prueba */
   .card{
     width:92%;max-width:1000px;margin:auto;position:relative;z-index:10;
     background:rgba(255,255,255,.08);border-radius:20px;padding:28px;
@@ -54,31 +53,28 @@
   .count-item .label{font-size:14px;opacity:.9}
   .cta button{padding:10px 16px;border-radius:10px;border:0;cursor:pointer}
 
-  /* Avión de despegue (decorativo) */
+  /* Avión decorativo */
   .plane{width:140px;position:absolute;left:-200px;bottom:130px;opacity:0;transition:all 1s linear;z-index:5}
   .plane.takeoff{animation:takeoff 2s ease-in forwards}
   @keyframes takeoff{0%{left:10%;bottom:130px;opacity:1}100%{left:120%;bottom:60%;opacity:0}}
 
-  /* Fondo Pinklandia (solo en el reveal) con ZOOM-IN */
+  /* Pinklandia con zoom-in al aparecer */
   #pinklandia-bg{
     position:fixed;inset:0;
-    background:url("Image (4).jpeg") bottom center/cover no-repeat;
+    background:url("pinklandia-city.jpg") bottom center/cover no-repeat;
     opacity:0;transition:opacity 1.6s ease;z-index:1;
-    transform: scale(1);                 /* base para zoom */
-    transform-origin: center bottom;      /* empuje desde el horizonte */
+    transform: scale(1);
+    transform-origin: center bottom;
     will-change: transform, opacity;
   }
   #pinklandia-bg.show{
     opacity:1;
     animation:
       panCity 20s linear infinite alternate,
-      zoomPink 3.2s ease-out forwards;   /* ⬅️ zoom al aparecer */
+      zoomPink 2.6s ease-out forwards;  /* zoom un poco más rápido */
   }
   @keyframes panCity{0%{background-position:bottom left}100%{background-position:bottom right}}
-  @keyframes zoomPink{
-    from{ transform: scale(1); }
-    to  { transform: scale(1.15); }      /* ajusta a 1.10–1.15 según gusto */
-  }
+  @keyframes zoomPink{from{transform:scale(1)}to{transform:scale(1.15)}}
 
   /* Letrero final */
   #only-reveal{
@@ -118,12 +114,12 @@
 </head>
 <body>
 
-  <!-- 4 frames -->
+  <!-- 4 imágenes (la #4 se reserva para después del conteo) -->
   <div id="runway-seq">
     <img id="frame0" alt="frame0"/>
     <img id="frame1" alt="frame1"/>
     <img id="frame2" alt="frame2"/>
-    <img id="frame3" alt="frame3"/>
+    <img id="frame3" alt="frame3"/><!-- ⬅️ NO se usa antes del conteo -->
   </div>
 
   <!-- Sonidos -->
@@ -187,7 +183,7 @@
     }catch(e){}
   }
 
-  /* ======= Aplausos garantizados (archivo o sintético) ======= */
+  /* ======= Aplausos garantizados ======= */
   let AC=null, masterG=null;
   function ensureAC(){if(!AC){AC=new (window.AudioContext||window.webkitAudioContext)();masterG=AC.createGain();masterG.connect(AC.destination);}}
   function randomNoiseBuffer(len=0.18){const n=Math.floor(len*AC.sampleRate);const b=AC.createBuffer(1,n,AC.sampleRate);const d=b.getChannelData(0);for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*(1-i/n);return b;}
@@ -264,7 +260,7 @@
     say("It's a girl!", 2000, 1.08, 0.98);
   }
 
-  /* ======= Secuencia de aterrizaje ======= */
+  /* ======= Secuencia de aterrizaje (solo frames 0,1,2) ======= */
   function playLandingSequence(afterTouchdown){
     const seq=document.getElementById('runway-seq');
     seq.classList.add('show');
@@ -272,27 +268,33 @@
     try{ snd.wind.volume=.45; snd.wind.play(); }catch(e){}
     play(snd.roar,.58);
 
-    const times=[1600,2000,2300,3200]; // ~9.1s total
-    frames.forEach((_,i)=>{
+    // Mostramos SOLO los 3 primeros frames antes del conteo
+    const preCountFrames = 3; // 0,1,2
+    const times=[1600,2000,2300]; // ~5.9s total para 3 frames
+    for(let i=0;i<preCountFrames;i++){
       const img=document.getElementById("frame"+i);
+      const at = times.slice(0,i+1).reduce((a,b)=>a+b,0);
       setTimeout(()=>{
         document.querySelectorAll('#runway-seq img').forEach(el=>el.classList.remove('show'));
         img.classList.add('show');
-        if(i===frames.length-1){
+        if(i===preCountFrames-1){ // último frame antes del conteo (Image 3)
           img.classList.add('touchdown');
           setTimeout(()=>{
             play(snd.touch,.95);
             setTimeout(()=>play(snd.reverse,.9),150);
-            afterTouchdown && afterTouchdown();  // aquí arrancamos la siguiente fase
+            afterTouchdown && afterTouchdown();
           },700);
         }
-      }, times.slice(0,i+1).reduce((a,b)=>a+b,0));
-    });
+      }, at);
+    }
   }
 
-  /* ======= Cuenta 5-4-3-2-1 antes del reveal ======= */
-  const COUNT_STEP_MS = 1000;               // velocidad del conteo (1s por número)
-  const HOLD_BEFORE_COUNTDOWN = 2500;       // ⬅️ pausa extra en la pista ANTES del "5" (2.5s)
+  /* ======= Parámetros de tiempos ======= */
+  const COUNT_STEP_MS = 1000;          // 1s por número
+  const HOLD_BEFORE_COUNTDOWN = 2500;  // pausa en pista ANTES del "5"
+  const POST_IMAGE4_HOLD_MS = 1000;    // cuánto se muestra Image (4) ANTES del reveal
+
+  /* ======= Conteo 5-4-3-2-1 ======= */
   function startRevealCountdown(done){
     const overlay = document.getElementById('count-overlay');
     const numEl   = document.getElementById('count-num');
@@ -311,6 +313,15 @@
       }
     }
     tick();
+  }
+
+  /* ======= Mostrar imagen 4 y luego ir al reveal ======= */
+  function showImage4ThenReveal(){
+    const seq=document.getElementById('runway-seq');
+    const img4=document.getElementById('frame3');
+    document.querySelectorAll('#runway-seq img').forEach(el=>el.classList.remove('show'));
+    img4.classList.add('show','touchdown'); // pequeño "bump" para entrar con fuerza
+    setTimeout(showFinal, POST_IMAGE4_HOLD_MS);
   }
 
   /* ======= Confetti ======= */
@@ -336,9 +347,9 @@
 
   /* ======= Reveal (Pinklandia + letrero + confetti) ======= */
   function showFinal(){
-    // Fundimos la pista y traemos Pinklandia con zoom, un beat después del conteo
+    // Fundimos la pista y traemos Pinklandia (zoom-in)
     document.getElementById('runway-seq').classList.add('fade-out');
-    setTimeout(()=>{ pinkBG.classList.add('show'); }, 800); // ⬅️ entra Pinklandia un poquito después
+    setTimeout(()=>{ pinkBG.classList.add('show'); }, 800);
 
     card.classList.add('hide-out');
     document.getElementById('only-reveal').classList.add('show');
@@ -356,8 +367,9 @@
     plane.classList.add('takeoff');
     setTimeout(()=>{
       plane.classList.remove('takeoff');
-      // Tras el touchdown, mostramos la pista un rato y recién ahí arrancamos el 5-4-3-2-1
-      playLandingSequence(()=> setTimeout(()=> startRevealCountdown(showFinal), HOLD_BEFORE_COUNTDOWN));
+      // Después del touchdown en Image (3), esperamos y arrancamos el conteo;
+      // cuando el conteo termina, mostramos Image (4) y luego el reveal.
+      playLandingSequence(()=> setTimeout(()=> startRevealCountdown(showImage4ThenReveal), HOLD_BEFORE_COUNTDOWN));
     }, 1600);
   }
 
