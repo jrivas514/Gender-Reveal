@@ -12,7 +12,7 @@
   }
   html,body{height:100%;margin:0;background:#000;color:#fff;overflow:hidden}
 
-  /* Secuencia de pista (la última visible ANTES del conteo será la #3, Image (3).jpeg) */
+  /* Pista (la #3 queda visible antes del conteo; la #4 se usa después) */
   #runway-seq{position:fixed;inset:0;z-index:0;opacity:0;transition:opacity .4s ease;background:#000;overflow:hidden}
   #runway-seq.show{opacity:1}
   #runway-seq.fade-out{opacity:0;transition:opacity .8s ease}
@@ -71,7 +71,7 @@
     opacity:1;
     animation:
       panCity 20s linear infinite alternate,
-      zoomPink 2.6s ease-out forwards;  /* zoom un poco más rápido */
+      zoomPink 2.6s ease-out forwards;
   }
   @keyframes panCity{0%{background-position:bottom left}100%{background-position:bottom right}}
   @keyframes zoomPink{from{transform:scale(1)}to{transform:scale(1.15)}}
@@ -244,11 +244,11 @@
   /* ======= Capitán ======= */
   async function captainAnnouncement(){
     await speak("Ladies and gentlemen, this is your captain speaking. Welcome aboard.", {rate:0.84, pitch:0.95});
-    await speak("We are ready for departure to Pinklandia, or Bluelandia.", {rate:0.84, pitch:0.95});
+    await speak("We are ready for departure to Bluelandia, or Pinklandia.", {rate:0.84, pitch:0.95});
     await new Promise(r=>setTimeout(r,1200));
     play(snd.roar,0.9);
     await new Promise(r=>setTimeout(r,900));
-    await speak("We are taking off.", {rate:0.82, pitch:0.94});
+    await speak("Landing in.", {rate:0.82, pitch:0.94});
   }
 
   /* ======= Gritos de reveal ======= */
@@ -268,7 +268,6 @@
     try{ snd.wind.volume=.45; snd.wind.play(); }catch(e){}
     play(snd.roar,.58);
 
-    // Mostramos SOLO los 3 primeros frames antes del conteo
     const preCountFrames = 3; // 0,1,2
     const times=[1600,2000,2300]; // ~5.9s total para 3 frames
     for(let i=0;i<preCountFrames;i++){
@@ -277,7 +276,7 @@
       setTimeout(()=>{
         document.querySelectorAll('#runway-seq img').forEach(el=>el.classList.remove('show'));
         img.classList.add('show');
-        if(i===preCountFrames-1){ // último frame antes del conteo (Image 3)
+        if(i===preCountFrames-1){
           img.classList.add('touchdown');
           setTimeout(()=>{
             play(snd.touch,.95);
@@ -293,6 +292,7 @@
   const COUNT_STEP_MS = 1000;          // 1s por número
   const HOLD_BEFORE_COUNTDOWN = 2500;  // pausa en pista ANTES del "5"
   const POST_IMAGE4_HOLD_MS = 1000;    // cuánto se muestra Image (4) ANTES del reveal
+  const PINKLANDIA_DELAY_MS = 800;     // retardo antes de mostrar Pinklandia tras fundir la pista
 
   /* ======= Conteo 5-4-3-2-1 ======= */
   function startRevealCountdown(done){
@@ -317,10 +317,9 @@
 
   /* ======= Mostrar imagen 4 y luego ir al reveal ======= */
   function showImage4ThenReveal(){
-    const seq=document.getElementById('runway-seq');
     const img4=document.getElementById('frame3');
     document.querySelectorAll('#runway-seq img').forEach(el=>el.classList.remove('show'));
-    img4.classList.add('show','touchdown'); // pequeño "bump" para entrar con fuerza
+    img4.classList.add('show','touchdown');
     setTimeout(showFinal, POST_IMAGE4_HOLD_MS);
   }
 
@@ -347,9 +346,8 @@
 
   /* ======= Reveal (Pinklandia + letrero + confetti) ======= */
   function showFinal(){
-    // Fundimos la pista y traemos Pinklandia (zoom-in)
     document.getElementById('runway-seq').classList.add('fade-out');
-    setTimeout(()=>{ pinkBG.classList.add('show'); }, 800);
+    setTimeout(()=>{ pinkBG.classList.add('show'); }, PINKLANDIA_DELAY_MS);
 
     card.classList.add('hide-out');
     document.getElementById('only-reveal').classList.add('show');
@@ -367,15 +365,15 @@
     plane.classList.add('takeoff');
     setTimeout(()=>{
       plane.classList.remove('takeoff');
-      // Después del touchdown en Image (3), esperamos y arrancamos el conteo;
-      // cuando el conteo termina, mostramos Image (4) y luego el reveal.
+      // Touchdown en Image (3) → pausa → conteo → Image (4) → reveal
       playLandingSequence(()=> setTimeout(()=> startRevealCountdown(showImage4ThenReveal), HOLD_BEFORE_COUNTDOWN));
     }, 1600);
   }
 
-  // Listo tras cargar voces
   document.getElementById('manualTrigger').addEventListener('click', () => {
-    runAfterVoices(trigger);
+    // Carga de voces antes de iniciar
+    if (speechSynthesis.getVoices().length) trigger();
+    else speechSynthesis.addEventListener('voiceschanged', trigger, { once:true });
   });
 </script>
 </body>
