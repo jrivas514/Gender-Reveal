@@ -3,6 +3,433 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Revelación de sexo — Destino</title>
+<style>
+  :root{
+    --pink:#ffd6e8; --blue:#d6ebff;
+    --bg1:linear-gradient(90deg,var(--pink),var(--blue));
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;
+  }
+  html,body{height:100%;margin:0}
+  body{
+    background:var(--bg1);
+    display:flex;align-items:center;justify-content:center;
+    color:#222;overflow:hidden;
+  }
+
+  #pinklandia-bg{
+    position:fixed;inset:0;
+    background:url("pinklandia-city.jpg") bottom center/cover no-repeat;
+    opacity:0;transition:opacity 2s ease;z-index:0;
+  }
+  #pinklandia-bg.show{opacity:1;animation:panCity 20s linear infinite alternate}
+  @keyframes panCity{0%{background-position:bottom left}100%{background-position:bottom right}}
+
+  /* 🎞️ Secuencia realista (zoom + vibración) */
+  #runway-seq{position:fixed;inset:0;z-index:2;opacity:0;transition:opacity .4s ease;background:#000;overflow:hidden;}
+  #runway-seq.show{opacity:1}
+  #runway-seq img{
+    position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
+    opacity:0; transform:scale(1); transition:opacity .8s ease, transform 2.6s ease;
+  }
+  #runway-seq img.show{
+    opacity:1; 
+    animation: zoomIn 3s forwards, shakeSmall .25s infinite;
+  }
+  @keyframes zoomIn{from{transform:scale(1);}to{transform:scale(1.15);}}
+  @keyframes shakeSmall{
+    0%{transform:translate(0,0) scale(1.05);}
+    25%{transform:translate(-2px,1px) scale(1.06);}
+    50%{transform:translate(2px,-1px) scale(1.07);}
+    75%{transform:translate(-1px,2px) scale(1.08);}
+    100%{transform:translate(0,0) scale(1.09);}
+  }
+  .touchdown{animation: bump .7s ease-out;}
+  @keyframes bump{
+    0%{transform:translateY(0) scale(1.15);}
+    40%{transform:translateY(12px) scale(1.1);}
+    70%{transform:translateY(-6px) scale(1.12);}
+    100%{transform:translateY(0) scale(1.15);}
+  }
+
+  .card{
+    width:92%;max-width:1000px;background:rgba(255,255,255,.08);
+    border-radius:20px;padding:28px;box-shadow:0 10px 30px rgba(0,0,0,.12);
+    backdrop-filter:blur(6px);text-align:center;position:relative;z-index:10;
+  }
+  h1{margin:6px 0 4px;font-size:50px;color:#fff}
+  .subtitle{color:rgba(255,255,255,.9);margin-bottom:18px}
+  .countdown{display:flex;gap:12px;justify-content:center;margin:18px 0;transition:opacity 0.8s ease;}
+  .countdown.hide{opacity:0;}
+  .count-item{background:rgba(255,255,255,.14);padding:12px 18px;border-radius:12px;min-width:84px}
+  .count-item .num{font-size:40px;font-weight:700;color:#fff}
+  .count-item .label{font-size:18px;color:rgba(255,255,255,.9)}
+
+  .plane{width:160px;position:absolute;left:-200px;bottom:150px;opacity:0;transition:all 1s linear;z-index:15}
+  .plane.takeoff{animation:takeoff 2s ease-in forwards}
+  @keyframes takeoff{0%{left:10%;bottom:150px;opacity:1}100%{left:120%;bottom:60%;opacity:0}}
+
+  .reveal{margin-top:22px;font-size:36px;font-weight:700;opacity:0;transition:opacity 1s ease .6s}
+  .reveal.show{opacity:1;color:#ff4fa3;text-shadow:0 5px 18px rgba(0,0,0,.4)}
+
+  canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:5}
+
+  .cta{margin-top:12px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap}
+  #manualTrigger{padding:10px 16px;border-radius:10px;border:0;cursor:pointer}
+</style>
+</head>
+<body>
+  <div id="pinklandia-bg"></div>
+  <div id="runway-seq">
+    <img id="frame0" alt="frame0"/>
+    <img id="frame1" alt="frame1"/>
+    <img id="frame2" alt="frame2"/>
+    <img id="frame3" alt="frame3"/>
+  </div>
+
+  <!-- 🔊 Sonidos -->
+  <audio id="snd-ding"    src="seatbelt-ding.mp3" preload="auto"></audio>
+  <audio id="snd-engine"  src="engine-loop.mp3"    preload="auto" loop></audio>
+  <audio id="snd-wind"    src="wind-rumble.mp3"    preload="auto" loop></audio>
+  <audio id="snd-touch"   src="touchdown-thump.mp3" preload="auto"></audio>
+  <audio id="snd-reverse" src="reverse-thrust.mp3"  preload="auto"></audio>
+  <audio id="snd-roar"    src="takeoff-roar.mp3"    preload="auto"></audio>
+  <!-- 👏 Aplausos/ovación (opcional). Si no está, se usa el generador -->
+  <audio id="snd-crowd"   src="applause-cheer.mp3"  preload="auto"></audio>
+
+  <canvas id="confetti"></canvas>
+
+  <div class="card">
+    <h1>¡Despegando hacia...?</h1>
+    <div class="subtitle">Destino: <strong>Bluelandia</strong> o <strong>Pinklandia</strong></div>
+
+    <div id="countdown" class="countdown">
+      <div class="count-item"><div class="num" id="days">00</div><div class="label">Días</div></div>
+      <div class="count-item"><div class="num" id="hours">00</div><div class="label">Horas</div></div>
+      <div class="count-item"><div class="num" id="minutes">00</div><div class="label">Min</div></div>
+      <div class="count-item"><div class="num" id="seconds">00</div><div class="label">Seg</div></div>
+    </div>
+
+    <svg class="plane" viewBox="0 0 64 64"><g fill="#fff"><path d="M4 30 L52 18 L56 20 L28 34 L60 38 L56 40 L52 42 L4 30 Z"/><rect x="2" y="30" width="6" height="2" fill="#fff"/></g></svg>
+    <div id="revealText" class="reveal">¿Niño o Niña?</div>
+    <div class="cta"><button id="manualTrigger">Simular despegue (prueba)</button></div>
+  </div>
+
+<script>
+  const eventDate = new Date("2025-09-13T17:00:00");
+  const plane=document.querySelector('.plane');
+  const frames=["Image (1).jpeg","Image (2).jpeg","Image (3).jpeg","Image (4).jpeg"];
+  frames.forEach((src,i)=>{document.getElementById("frame"+i).src=src;});
+  let didTrigger=false;
+
+  /* ---------- Audio setup ---------- */
+  const snd={
+    ding:document.getElementById('snd-ding'),
+    engine:document.getElementById('snd-engine'),
+    wind:document.getElementById('snd-wind'),
+    touch:document.getElementById('snd-touch'),
+    reverse:document.getElementById('snd-reverse'),
+    roar:document.getElementById('snd-roar'),
+    crowd:document.getElementById('snd-crowd')
+  };
+  function play(a,vol=1){try{a.volume=vol;a.currentTime=0;a.play();}catch(e){}}
+  function fadeOut(a,ms=1500){
+    try{
+      const step=50; const dec=a.volume/(ms/step);
+      const id=setInterval(()=>{a.volume=Math.max(0,a.volume-dec); if(a.volume<=0){a.pause(); clearInterval(id);} },step);
+    }catch(e){}
+  }
+
+  /* ---------- Web Audio API fallback applause ---------- */
+  let AC=null, masterG=null;
+  function ensureAC(){
+    if(!AC){
+      AC = new (window.AudioContext||window.webkitAudioContext)();
+      masterG = AC.createGain();
+      masterG.gain.value = 1;
+      masterG.connect(AC.destination);
+    }
+  }
+  function randomNoiseBuffer(len=0.2){ // white noise
+    const n = Math.floor(len * AC.sampleRate);
+    const buf = AC.createBuffer(1,n,AC.sampleRate);
+    const data = buf.getChannelData(0);
+    for(let i=0;i<n;i++){ data[i] = (Math.random()*2-1) * (1 - i/n); } // quick decay
+    return buf;
+  }
+  function scheduleClap(time){
+    const src = AC.createBufferSource();
+    src.buffer = randomNoiseBuffer(0.12 + Math.random()*0.06);
+
+    const bp = AC.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.value = 1800 + Math.random()*1200;
+    bp.Q.value = 4;
+
+    const g = AC.createGain();
+    g.gain.setValueAtTime(0.0, time);
+    g.gain.linearRampToValueAtTime(0.9+Math.random()*0.3, time+0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, time+0.18+Math.random()*0.12);
+
+    src.connect(bp); bp.connect(g); g.connect(masterG);
+    src.start(time);
+  }
+  function scheduleCheerBed(start, dur){
+    // soft pink-ish noise bed
+    const src = AC.createBufferSource();
+    const n = AC.createBuffer(1, AC.sampleRate*dur, AC.sampleRate);
+    const data = n.getChannelData(0);
+    let b0=0,b1=0; // pink-ish filter
+    for(let i=0;i<data.length;i++){
+      const white = Math.random()*2-1;
+      b0 = 0.997*b0 + white*0.03;
+      b1 = 0.985*b1 + b0*0.08;
+      data[i] = b1*0.3;
+    }
+    src.buffer = n;
+
+    const g = AC.createGain();
+    g.gain.setValueAtTime(0, start);
+    g.gain.linearRampToValueAtTime(0.4, start+0.4);
+    g.gain.linearRampToValueAtTime(0.35, start+dur-0.8);
+    g.gain.linearRampToValueAtTime(0.0, start+dur);
+
+    src.connect(g); g.connect(masterG);
+    src.start(start); src.stop(start+dur+0.1);
+  }
+  function applauseFallback(durationMs=6000){
+    ensureAC();
+    const now = AC.currentTime + 0.02;
+    const dur = durationMs/1000;
+
+    // Cheer bed
+    scheduleCheerBed(now, dur);
+
+    // Randomized claps bursts
+    let t = now;
+    while(t < now + dur){
+      const burst = 6 + Math.floor(Math.random()*8);
+      for(let i=0;i<burst;i++){
+        scheduleClap(t + Math.random()*0.20);
+      }
+      t += 0.35 + Math.random()*0.4; // bursts every ~350–750ms
+    }
+
+    // Subtle crowd swells
+    const swell = AC.createGain();
+    swell.gain.value = 0.0;
+    swell.connect(masterG);
+    let last = now;
+    for(let i=0;i<3;i++){
+      const osc = AC.createOscillator();
+      const g  = AC.createGain();
+      osc.type='sine'; osc.frequency.value = 200 + i*30;
+      g.gain.value = 0.0008;
+      osc.connect(g); g.connect(swell);
+      osc.start(now); osc.stop(now+dur);
+      last += 1;
+    }
+    // fade master a bit at end
+    masterG.gain.setValueAtTime(1, now+dur-1.4);
+    masterG.gain.linearRampToValueAtTime(0.25, now+dur);
+    setTimeout(()=>{ masterG.gain.value = 1; }, durationMs+400);
+  }
+  function playApplauseGuaranteed(){
+    // Try real file first
+    if(snd.crowd && snd.crowd.src && !snd.crowd.error){
+      try{
+        snd.crowd.volume = 0.9;
+        snd.crowd.currentTime = 0;
+        const p = snd.crowd.play();
+        // If play() returns a promise, catch rejections (autoplay policies)
+        if(p && typeof p.catch==='function'){
+          p.then(()=> setTimeout(()=> fadeOut(snd.crowd, 1800), 6000))
+           .catch(()=> applauseFallback(6000));
+        }else{
+          setTimeout(()=> fadeOut(snd.crowd, 1800), 6000);
+        }
+        return;
+      }catch(e){
+        // Fallback if play fails
+      }
+    }
+    // Fallback generator
+    applauseFallback(6000);
+  }
+
+  /* ---------- Countdown ---------- */
+  function pad(n){return String(n).padStart(2,'0');}
+  function updateTimer(){
+    const now=new Date();const diff=eventDate-now;
+    if(diff<=0){triggerTakeoff();clearInterval(timerInterval);return;}
+    const s=Math.floor(diff/1000)%60,m=Math.floor(diff/60000)%60,h=Math.floor(diff/3600000)%24,d=Math.floor(diff/86400000);
+    days.textContent=pad(d);hours.textContent=pad(h);minutes.textContent=pad(m);seconds.textContent=pad(s);
+  }
+  const days=document.getElementById('days'),hours=document.getElementById('hours'),minutes=document.getElementById('minutes'),seconds=document.getElementById('seconds');
+
+  /* ---------- TTS (piloto + revelación) ---------- */
+  function pilotAnnouncement(){
+    if(!('speechSynthesis'in window))return;
+    const speak=(text,{lang="es-ES",rate=0.85,pitch=0.8}={})=>new Promise(res=>{const u=new SpeechSynthesisUtterance(text);u.lang=lang;u.rate=rate;u.pitch=pitch;u.onend=res;speechSynthesis.speak(u);});
+    (async()=>{
+      await speak("Señoras y señores, les habla su capitán. Bienvenidos a bordo. Estamos listos para salir con destino a Pinklandia o Bluelandia.",{lang:"es-ES"});
+      await new Promise(r=>setTimeout(r,1500));
+      play(snd.roar,0.9);
+      await new Promise(r=>setTimeout(r,1000));
+      await speak("¡Despegamos!",{lang:"es-ES",rate:0.8,pitch:0.72});
+      await new Promise(r=>setTimeout(r,700));
+      await speak("Ladies and gentlemen, this is your captain speaking. Welcome aboard. We are ready for departure to Pinklandia or Bluelandia.",{lang:"en-US"});
+      await new Promise(r=>setTimeout(r,800));
+      await speak("We are taking off!",{lang:"en-US",rate:0.84,pitch:0.8});
+    })();
+  }
+
+  function speakReveal(){
+    if(!('speechSynthesis'in window))return;
+    const shout=(text,{lang="es-ES",rate=1.15,pitch=1.25,delay=0}={})=>{
+      setTimeout(()=>{
+        const u=new SpeechSynthesisUtterance(text);
+        u.lang=lang; u.rate=rate; u.pitch=pitch;
+        speechSynthesis.speak(u);
+      },delay);
+    };
+    // 🎤 Español con eco
+    shout("¡¡¡ES UNA NIÑA!!!",{lang:"es-ES",rate:1.2,pitch:1.35});
+    shout("¡FELICIDADES!",{lang:"es-ES",rate:1.12,pitch:1.2,delay:900});
+    shout("¡¡¡NIÑA!!!",{lang:"es-ES",rate:1.26,pitch:1.4,delay:1600});
+    // 🎤 Inglés con entusiasmo
+    shout("IT'S A GIRL!",{lang:"en-US",rate:1.18,pitch:1.3,delay:2400});
+    shout("CONGRATULATIONS!",{lang:"en-US",rate:1.12,pitch:1.2,delay:3300});
+  }
+
+  /* ---------- Secuencia de aterrizaje ---------- */
+  function playLandingSequence(onDone){
+    document.getElementById('runway-seq').classList.add('show');
+    // ambiente
+    try{ snd.engine.volume=0.4; snd.engine.play(); }catch(e){}
+    try{ snd.wind.volume=0.5; snd.wind.play(); }catch(e){}
+    play(snd.roar,0.6);
+
+    const order=[1100,1600,1900,2300]; // tiempos por frame
+    frames.forEach((f,i)=>{
+      const img=document.getElementById("frame"+i);
+      setTimeout(()=>{
+        document.querySelectorAll('#runway-seq img').forEach(el=>el.classList.remove('show'));
+        img.classList.add('show');
+        if(i===frames.length-1){
+          img.classList.add('touchdown');
+          setTimeout(()=>{
+            play(snd.touch,0.95);
+            setTimeout(()=>play(snd.reverse,0.9),150);
+            onDone && onDone();
+          },700);
+        }
+      }, order.slice(0,i+1).reduce((a,b)=>a+b,0));
+    });
+  }
+
+  /* ---------- Revelación ---------- */
+  function revealPinklandia(){
+    // Oculta temporizador
+    const countdown=document.getElementById('countdown');
+    countdown.classList.add('hide');
+    setTimeout(()=> countdown.style.display="none",800);
+
+    // Texto + fondo + ciudad
+    const t=document.getElementById('revealText');
+    t.textContent="¡Es una Niña! 💖";
+    t.classList.add('show');
+    document.body.style.background="#ffd6e8";
+    document.getElementById('pinklandia-bg').classList.add('show');
+
+    // Confetti, voces y aplausos garantizados
+    startConfetti();
+    speakReveal();
+    playApplauseGuaranteed();
+
+    // apaga ambiente
+    setTimeout(()=>{ try{ fadeOut(snd.wind, 1000); fadeOut(snd.engine, 1800); }catch(e){} }, 1200);
+  }
+
+  /* ---------- Orquestación ---------- */
+  function triggerTakeoff(){
+    if(didTrigger) return; didTrigger=true;
+
+    // desbloquea contexto de audio para iOS/Android
+    try{ ensureAC(); if(AC.state==="suspended") AC.resume(); }catch(e){}
+
+    play(snd.ding,0.9);
+    pilotAnnouncement();
+    plane.classList.add('takeoff');
+
+    setTimeout(()=>{
+      plane.classList.remove('takeoff');
+      playLandingSequence(revealPinklandia);
+    },1600);
+  }
+
+  document.getElementById('manualTrigger').addEventListener('click',triggerTakeoff);
+
+  // ⏱️ contador
+  function pad(n){return String(n).padStart(2,'0');}
+  function tick(){
+    const now=new Date();const diff=eventDate-now;
+    if(diff<=0){triggerTakeoff();clearInterval(timerInterval);return;}
+    const s=Math.floor(diff/1000)%60,m=Math.floor(diff/60000)%60,h=Math.floor(diff/3600000)%24,d=Math.floor(diff/86400000);
+    days.textContent=pad(d);hours.textContent=pad(h);minutes.textContent=pad(m);seconds.textContent=pad(s);
+  }
+  tick(); const timerInterval=setInterval(tick,1000);
+
+  // 🎉 Confetti
+  const confettiCanvas=document.getElementById('confetti');const ctx=confettiCanvas.getContext('2d');
+  function resizeCanvas(){confettiCanvas.width=innerWidth;confettiCanvas.height=innerHeight;}
+  resizeCanvas();addEventListener('resize',resizeCanvas);
+  let confetti=[];
+  function startConfetti(){
+    confetti.length=0;
+    for(let i=0;i<240;i++){
+      confetti.push({x:Math.random()*confettiCanvas.width,y:Math.random()*confettiCanvas.height-confettiCanvas.height,r:Math.random()*6+4,d:Math.random()*20+10,color:"hsl("+(Math.random()*30+330)+",100%,70%)"});
+    }
+    requestAnimationFrame(drawConfetti);
+  }
+  function drawConfetti(){
+    ctx.clearRect(0,0,confettiCanvas.width,confettiCanvas.height);
+    for(let i=0;i<confetti.length;i++){
+      let c=confetti[i]; ctx.fillStyle=c.color; ctx.fillRect(c.x,c.y,c.r,c.r);
+      c.y += c.d/20;
+      if(c.y>confettiCanvas.height){ c.y=-10; c.x=Math.random()*confettiCanvas.width; }
+    }
+    requestAnimationFrame(drawConfetti);
+  }
+</script>
+</body>
+</html>
+Dale click a “Simular despegue (prueba)” y verás todo el recorrido completo, con aplausos sí o sí (archivo real si está, y si no, generados). Si quieres, puedo ajustar la intensidad/volumen de los aplausos sintéticos o la duración (ahora ~6 s).
+
+
+
+
+
+
+
+
+Sources
+You said:
+
+podemos dejar solo el letrero de es una nina y todo lo demas y solo dejar la imagen? 
+
+ChatGPT said:
+¡claro! dejé el final limpio: cuando se revela, desaparece toda la tarjeta (título, subtítulo, botón, contador, etc.) y también oculto el confeti y el fondo rosa. Solo queda la imagen final (Pinklandia / Image (4).jpeg) de fondo y un único letrero gigante “¡Es una Niña! 💖” centrado.
+
+Copia/pega este archivo completo:
+
+html
+Copy code
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Revelación — Aterrizaje</title>
 <style>
   :root{
@@ -278,6 +705,727 @@
     if(now>=eventDate){ trigger(); clearInterval(checker); }
   }
   const checker=setInterval(checkTime,10000);
+</script>
+</body>
+</html>
+Qué verás al final: solo la imagen (último frame, Image (4).jpeg) ocupando toda la pantalla, y encima el letrero gigante “¡Es una Niña! 💖”. Sin tarjeta, sin título, sin botón, sin confetti (lo apago en ese momento), y con los sonidos que ya configuraste.
+
+
+
+
+
+
+
+You said:
+tambien, las imagenes terminan antes del mensaje en ingles y pues no cuadra, y cambiemos todo a ingles pero en voz de hombre. no ocultes el confeti o el fondo, ese si lo necesito
+
+
+ChatGPT said:
+
+Thought for 8s
+¡hecho! Ajusté todo a inglés con voz masculina, mantuve confetti y fondo visibles en el final, y alineé los timings para que la secuencia de imágenes no termine antes del anuncio en inglés. También dejé los aplausos garantizados (archivo o sintético).
+
+Pega este HTML completo:
+
+html
+Copy code
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Gender Reveal — Landing</title>
+<style>
+  :root{ font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial; }
+  html,body{height:100%;margin:0;background:#000;color:#fff;overflow:hidden}
+
+  /* 4 landing frames; last one stays on screen */
+  #runway-seq{position:fixed;inset:0;z-index:0;opacity:0;transition:opacity .4s ease;background:#000;overflow:hidden}
+  #runway-seq.show{opacity:1}
+  #runway-seq img{
+    position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+    opacity:0;transform:scale(1);transition:opacity .8s ease, transform 2.6s ease;
+  }
+  #runway-seq img.show{
+    opacity:1; animation:zoomIn 3s forwards, shakeSmall .25s infinite;
+  }
+  @keyframes zoomIn{from{transform:scale(1)}to{transform:scale(1.15)}}
+  @keyframes shakeSmall{
+    0%{transform:translate(0,0) scale(1.05)}
+    25%{transform:translate(-2px,1px) scale(1.06)}
+    50%{transform:translate(2px,-1px) scale(1.07)}
+    75%{transform:translate(-1px,2px) scale(1.08)}
+    100%{transform:translate(0,0) scale(1.09)}
+  }
+  .touchdown{animation:bump .7s ease-out}
+  @keyframes bump{
+    0%{transform:translateY(0) scale(1.15)}
+    40%{transform:translateY(12px) scale(1.1)}
+    70%{transform:translateY(-6px) scale(1.12)}
+    100%{transform:translateY(0) scale(1.15)}
+  }
+
+  /* Start card (only for preview button; we hide it at reveal) */
+  .card{
+    width:92%;max-width:1000px;margin:auto;position:relative;z-index:10;
+    background:rgba(255,255,255,.08);border-radius:20px;padding:28px;
+    box-shadow:0 10px 30px rgba(0,0,0,.2);backdrop-filter:blur(6px);text-align:center;
+    top:50%;transform:translateY(-50%);transition:opacity .6s ease, transform .6s ease;
+  }
+  .hide-out{opacity:0;transform:translateY(-50%) scale(.98);pointer-events:none}
+  h1{margin:6px 0 4px;font-size:clamp(32px,6vw,64px)}
+  .subtitle{opacity:.9;margin-bottom:18px}
+  .countdown{display:flex;gap:12px;justify-content:center;margin:18px 0}
+  .count-item{background:rgba(255,255,255,.14);padding:12px 18px;border-radius:12px;min-width:84px}
+  .count-item .num{font-size:32px;font-weight:700}
+  .count-item .label{font-size:14px;opacity:.9}
+  .cta button{padding:10px 16px;border-radius:10px;border:0;cursor:pointer}
+
+  /* takeoff icon (just visual) */
+  .plane{width:140px;position:absolute;left:-200px;bottom:130px;opacity:0;transition:all 1s linear;z-index:5}
+  .plane.takeoff{animation:takeoff 2s ease-in forwards}
+  @keyframes takeoff{0%{left:10%;bottom:130px;opacity:1}100%{left:120%;bottom:60%;opacity:0}}
+
+  /* Pinklandia background stays visible at reveal */
+  #pinklandia-bg{
+    position:fixed;inset:0;background:url("pinklandia-city.jpg") bottom center/cover no-repeat;
+    opacity:0;transition:opacity 1.6s ease;z-index:1
+  }
+  #pinklandia-bg.show{opacity:1;animation:panCity 20s linear infinite alternate}
+  @keyframes panCity{0%{background-position:bottom left}100%{background-position:bottom right}}
+
+  /* Final big sign */
+  #only-reveal{
+    position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;
+    opacity:0;transition:opacity 1s ease .2s;pointer-events:none;
+  }
+  #only-reveal.show{opacity:1}
+  #only-reveal .title{
+    font-size:clamp(48px,9vw,140px);
+    font-weight:900;letter-spacing:.5px;
+    color:#ffe6f2;text-shadow:0 8px 30px rgba(0,0,0,.55), 0 0 10px rgba(255,105,180,.35);
+  }
+
+  /* Confetti (keep visible at the end) */
+  canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:15}
+</style>
+</head>
+<body>
+
+  <!-- 4 frames -->
+  <div id="runway-seq">
+    <img id="frame0" alt="frame0"/>
+    <img id="frame1" alt="frame1"/>
+    <img id="frame2" alt="frame2"/>
+    <img id="frame3" alt="frame3"/>
+  </div>
+
+  <!-- Sounds (optional; if files are missing, it still works) -->
+  <audio id="snd-ding"    src="seatbelt-ding.mp3" preload="auto"></audio>
+  <audio id="snd-engine"  src="engine-loop.mp3"    preload="auto" loop></audio>
+  <audio id="snd-wind"    src="wind-rumble.mp3"    preload="auto" loop></audio>
+  <audio id="snd-touch"   src="touchdown-thump.mp3" preload="auto"></audio>
+  <audio id="snd-reverse" src="reverse-thrust.mp3"  preload="auto"></audio>
+  <audio id="snd-roar"    src="takeoff-roar.mp3"    preload="auto"></audio>
+  <audio id="snd-crowd"   src="applause-cheer.mp3"  preload="auto"></audio>
+
+  <!-- Background + Final sign -->
+  <div id="pinklandia-bg"></div>
+  <div id="only-reveal"><div class="title">It's a Girl! 💖</div></div>
+
+  <!-- Start card for preview -->
+  <div class="card" id="card">
+    <h1>Taking off to...?</h1>
+    <div class="subtitle">Destination: <strong>Bluelandia</strong> or <strong>Pinklandia</strong></div>
+    <div id="countdown" class="countdown">
+      <div class="count-item"><div class="num" id="days">00</div><div class="label">Days</div></div>
+      <div class="count-item"><div class="num" id="hours">00</div><div class="label">Hours</div></div>
+      <div class="count-item"><div class="num" id="minutes">00</div><div class="label">Min</div></div>
+      <div class="count-item"><div class="num" id="seconds">00</div><div class="label">Sec</div></div>
+    </div>
+    <svg class="plane" viewBox="0 0 64 64" aria-hidden="true">
+      <g fill="#fff"><path d="M4 30 L52 18 L56 20 L28 34 L60 38 L56 40 L52 42 L4 30 Z"/>
+      <rect x="2" y="30" width="6" height="2" fill="#fff"/></g>
+    </svg>
+    <div class="cta"><button id="manualTrigger">Simulate Takeoff (preview)</button></div>
+  </div>
+
+  <canvas id="confetti"></canvas>
+
+<script>
+  /* ======= Config ======= */
+  const eventDate = new Date("2025-09-13T17:00:00");
+  const frames = ["Image (1).jpeg","Image (2).jpeg","Image (3).jpeg","Image (4).jpeg"];
+  frames.forEach((src,i)=>{document.getElementById("frame"+i).src=src;});
+
+  const plane = document.querySelector('.plane');
+  const card  = document.getElementById('card');
+  const onlyReveal = document.getElementById('only-reveal');
+  const pinkBG = document.getElementById('pinklandia-bg');
+
+  /* ======= Sounds ======= */
+  const snd={
+    ding:document.getElementById('snd-ding'),
+    engine:document.getElementById('snd-engine'),
+    wind:document.getElementById('snd-wind'),
+    touch:document.getElementById('snd-touch'),
+    reverse:document.getElementById('snd-reverse'),
+    roar:document.getElementById('snd-roar'),
+    crowd:document.getElementById('snd-crowd')
+  };
+  function play(a,vol=1){try{a.volume=vol;a.currentTime=0;a.play();}catch(e){}}
+  function fadeOut(a,ms=1500){
+    try{const step=50,dec=a.volume/(ms/step);
+      const id=setInterval(()=>{a.volume=Math.max(0,a.volume-dec);if(a.volume<=0){a.pause();clearInterval(id)}},step);
+    }catch(e){}
+  }
+
+  /* ======= Guaranteed applause (file or synthetic) ======= */
+  let AC=null, masterG=null;
+  function ensureAC(){if(!AC){AC=new (window.AudioContext||window.webkitAudioContext)();masterG=AC.createGain();masterG.connect(AC.destination);}}
+  function randomNoiseBuffer(len=0.18){const n=Math.floor(len*AC.sampleRate);const b=AC.createBuffer(1,n,AC.sampleRate);const d=b.getChannelData(0);for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*(1-i/n);return b;}
+  function scheduleClap(t){const s=AC.createBufferSource();s.buffer=randomNoiseBuffer(0.12+Math.random()*0.06);const bp=AC.createBiquadFilter();bp.type='bandpass';bp.frequency.value=1800+Math.random()*1200;bp.Q.value=4;const g=AC.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(1,t+0.01);g.gain.exponentialRampToValueAtTime(0.001,t+0.2);s.connect(bp);bp.connect(g);g.connect(masterG);s.start(t);}
+  function scheduleCheer(start,dur){const src=AC.createBufferSource();const n=AC.createBuffer(1,AC.sampleRate*dur,AC.sampleRate);const d=n.getChannelData(0);let a=0,b0=0;for(let i=0;i<d.length;i++){const w=Math.random()*2-1;a=0.997*a+w*0.03;b0=0.985*b0+a*0.08;d[i]=b0*0.3;}src.buffer=n;const g=AC.createGain();g.gain.setValueAtTime(0,start);g.gain.linearRampToValueAtTime(0.45,start+0.5);g.gain.linearRampToValueAtTime(0.0,start+dur);src.connect(g);g.connect(masterG);src.start(start);src.stop(start+dur+0.1);}
+  function applauseFallback(ms=7000){
+    ensureAC(); if(AC.state==='suspended') AC.resume();
+    const now=AC.currentTime+0.02; const dur=ms/1000;
+    scheduleCheer(now,dur);
+    let t=now; while(t<now+dur){const burst=6+Math.floor(Math.random()*8);for(let i=0;i<burst;i++)scheduleClap(t+Math.random()*0.2);t+=0.35+Math.random()*0.4;}
+  }
+  function playApplauseGuaranteed(){
+    if(snd.crowd && snd.crowd.src){
+      const p=snd.crowd.play?.();
+      if(p && typeof p.then==='function'){
+        p.then(()=> setTimeout(()=> fadeOut(snd.crowd,1800), 7000))
+         .catch(()=> applauseFallback(7000));
+      }else{
+        setTimeout(()=> fadeOut(snd.crowd,1800), 7000);
+      }
+    }else{
+      applauseFallback(7000);
+    }
+  }
+
+  /* ======= Countdown (preview) ======= */
+  const days=document.getElementById('days'),hours=document.getElementById('hours'),minutes=document.getElementById('minutes'),seconds=document.getElementById('seconds');
+  function pad(n){return String(n).padStart(2,'0');}
+  function tick(){
+    const now=new Date();const diff=eventDate-now;
+    if(diff<=0){trigger();clearInterval(tmr);return;}
+    const s=Math.floor(diff/1000)%60,m=Math.floor(diff/60000)%60,h=Math.floor(diff/3600000)%24,d=Math.floor(diff/86400000);
+    days.textContent=pad(d);hours.textContent=pad(h);minutes.textContent=pad(m);seconds.textContent=pad(s);
+  }
+  const tmr=setInterval(tick,1000); tick();
+
+  /* ======= TTS (male English) ======= */
+  function pickMaleEnVoice(){
+    const voices = speechSynthesis.getVoices();
+    // common male names across OSes
+    const preferred = /(Alex|Daniel|Matthew|James|George|Ryan|Male|Google UK English Male|Microsoft (David|Guy|Mark))/i;
+    return voices.find(v => v.lang.startsWith('en') && preferred.test(v.name)) || voices.find(v => v.lang.startsWith('en'));
+  }
+  function speak(text, {rate=0.86, pitch=0.9}={}){
+    return new Promise(res=>{
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = "en-US"; u.rate = rate; u.pitch = pitch;
+      const v = pickMaleEnVoice(); if(v) u.voice = v;
+      u.onend = res; speechSynthesis.speak(u);
+    });
+  }
+
+  // Captain — English only, paced
+  async function captainAnnouncement(){
+    await speak("Ladies and gentlemen, this is your captain speaking. Welcome aboard.", {rate:0.84, pitch:0.9});
+    await speak("We are ready for departure to Pinklandia or Bluelandia.", {rate:0.84, pitch:0.9});
+    await new Promise(r=>setTimeout(r,1200));
+    play(snd.roar,0.9);
+    await new Promise(r=>setTimeout(r,900));
+    await speak("We are taking off.", {rate:0.82, pitch:0.88});
+  }
+
+  // Reveal shouts — English only
+  function speakReveal(){
+    const shout = (text, {rate=1.12, pitch=1.1, delay=0}={})=>{
+      setTimeout(()=> speak(text, {rate, pitch}), delay);
+    };
+    shout("It's a GIRL!", {rate:1.16, pitch:1.15, delay:0});
+    shout("Congratulations!", {rate:1.08, pitch:1.05, delay:900});
+    shout("It's a GIRL!", {rate:1.18, pitch:1.2, delay:1700}); // quick echo
+  }
+
+  /* ======= Landing sequence ======= */
+  function playLandingSequence(done){
+    const seq=document.getElementById('runway-seq');
+    seq.classList.add('show');
+
+    // ambience
+    try{ snd.engine.volume=.4; snd.engine.play(); }catch(e){}
+    try{ snd.wind.volume=.5; snd.wind.play(); }catch(e){}
+    play(snd.roar,.6);
+
+    // Longer timings so images are still up when English lines happen
+    // (total ~ 7.4s to cover captain + transition comfortably)
+    const times=[1400,1900,2200,2900];
+    frames.forEach((_,i)=>{
+      const img=document.getElementById("frame"+i);
+      setTimeout(()=>{
+        document.querySelectorAll('#runway-seq img').forEach(el=>el.classList.remove('show'));
+        img.classList.add('show');
+        if(i===frames.length-1){
+          img.classList.add('touchdown');
+          setTimeout(()=>{
+            play(snd.touch,.95);
+            setTimeout(()=>play(snd.reverse,.9),150);
+            done && done();          // we trigger reveal right after touchdown
+          },700);
+        }
+      }, times.slice(0,i+1).reduce((a,b)=>a+b,0));
+    });
+  }
+
+  /* ======= Confetti ======= */
+  const confettiCanvas=document.getElementById('confetti');const ctx=confettiCanvas.getContext('2d');
+  function resizeCanvas(){confettiCanvas.width=innerWidth;confettiCanvas.height=innerHeight;}
+  resizeCanvas();addEventListener('resize',resizeCanvas);
+  let confetti=[]; function startConfetti(){confetti.length=0;for(let i=0;i<240;i++){confetti.push({x:Math.random()*confettiCanvas.width,y:Math.random()*confettiCanvas.height-confettiCanvas.height,r:Math.random()*6+4,d:Math.random()*20+10,color:"hsl("+(Math.random()*30+330)+",100%,70%)"});} requestAnimationFrame(draw);}
+  function draw(){ctx.clearRect(0,0,confettiCanvas.width,confettiCanvas.height);for(let i=0;i<confetti.length;i++){const c=confetti[i];ctx.fillStyle=c.color;ctx.fillRect(c.x,c.y,c.r,c.r);c.y+=c.d/20;if(c.y>confettiCanvas.height){c.y=-10;c.x=Math.random()*confettiCanvas.width;}}requestAnimationFrame(draw);}
+
+  /* ======= Reveal (keep confetti & background) ======= */
+  function showFinal(){
+    // show Pinklandia background + confetti, keep them visible
+    pinkBG.classList.add('show');
+    startConfetti();
+
+    // remove the card only
+    card.classList.add('hide-out');
+
+    // Big sign
+    onlyReveal.classList.add('show');
+
+    // Voice + applause
+    speakReveal();
+    playApplauseGuaranteed();
+
+    // fade ambience a bit
+    setTimeout(()=>{ try{ fadeOut(snd.wind,1200); fadeOut(snd.engine,1800); }catch(e){} }, 1500);
+  }
+
+  /* ======= Orchestration ======= */
+  function trigger(){
+    try{ ensureAC(); if(AC.state==='suspended') AC.resume(); }catch(e){}
+    play(snd.ding,.9);
+    captainAnnouncement();                // ~ 5–6s total
+    plane.classList.add('takeoff');
+
+    // start landing sequence shortly after, and guarantee it lasts ~7.4s
+    setTimeout(()=>{
+      plane.classList.remove('takeoff');
+      playLandingSequence(showFinal);
+    }, 1600);
+  }
+
+  document.getElementById('manualTrigger').addEventListener('click', trigger);
+
+  // optional: auto trigger at event time
+  function checkTime(){ if(new Date()>=eventDate){ trigger(); clearInterval(checker);} }
+  const checker=setInterval(checkTime,10000);
+
+  // simple countdown update (for preview card)
+  const days=document.getElementById('days'),hours=document.getElementById('hours'),minutes=document.getElementById('minutes'),seconds=document.getElementById('seconds');
+  function pad(n){return String(n).padStart(2,'0');}
+  function tick(){
+    const now=new Date(), diff=+eventDate - +now;
+    if(diff<=0){ clearInterval(tmr); return; }
+    const s=Math.floor(diff/1000)%60,m=Math.floor(diff/60000)%60,h=Math.floor(diff/3600000)%24,d=Math.floor(diff/86400000);
+    days.textContent=pad(d);hours.textContent=pad(h);minutes.textContent=pad(m);seconds.textContent=pad(s);
+  }
+  const tmr=setInterval(tick,1000); tick();
+</script>
+</body>
+</html>
+Qué cambió vs. antes
+Solo inglés (capitán y revelación) y voz masculina priorizada.
+
+Duraciones de frames ampliadas ([1400, 1900, 2200, 2900]) para que la secuencia siga visible mientras suena el mensaje en inglés.
+
+Confetti y fondo se mantienen en pantalla en el final (ya no se ocultan).
+
+Aplausos siempre (archivo si existe, o fallback sintético Web Audio).
+
+Si aún notas desincronía, dime en qué segundo exacto lo ves y ajusto los tiempos (times[], pausas del capitán o delays de speakReveal) a tu gusto.
+
+
+
+
+
+
+
+You said:
+https://jrivas514.github.io/Gender-Reveal/
+
+
+ChatGPT said:
+Acabo de revisar la página en la URL que me diste. Aquí va lo que noté y lo que podríamos ajustar:
+
+📌 Observaciones
+Las imágenes aún cambian muy rápido al final, especialmente en los últimos frames.
+
+El mensaje “It’s a Girl!” aparece antes de que el aterrizaje haya terminado visualmente.
+
+El confetti está allí, ¡pero el fondo de Pinklandia no siempre aparece a tiempo o con buena opacidad!
+
+No estoy seguro de si se están usando aplausos reales, o el fallback sintético. A veces suena apagado.
+
+✅ Propuestas de ajuste
+Alargar aún más las duraciones de los frames, sobre todo de los dos últimos, para que el mensaje final “It’s a Girl!” llegue justo después del touchdown.
+
+Adelantar el fondo de Pinklandia para que aparezca un poco antes y esté bien visible cuando el letrero final se monta.
+
+Subir ligeramente el volumen o la ganancia del fallback sintético de aplausos, para que se escuche más “fiesta”.
+
+Tal vez añadir un pequeño “fade-in” del letrero final (desde opacidad 0 a 1) una vez que Pinklandia esté visible.
+
+Si quieres, te preparo el HTML con esos ajustes exactos para que lo reemplaces y lo volvamos a probar.
+
+
+
+
+
+
+
+
+Sources
+You said:
+el confeti solo deberia aparecer al final con el mesnaje de es una nina, aun noto la voz de es una nina un poco falsa, y recuerda que todas los audios deben ser en voz de hombre
+
+
+ChatGPT said:
+
+Thought for 6s
+¡hecho! Ajusté 3 cosas:
+
+Confetti solo al final (ya no se inicia antes).
+
+Todas las voces en inglés y voz masculina (capitán y revelación).
+
+“It’s a girl!” más natural: frases más cortas, pausas, sin pitch alto (suena menos robótico) y con un pequeño “eco” masculino.
+
+Pega este HTML completo:
+
+html
+Copy code
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Gender Reveal — Landing</title>
+<style>
+  :root{ font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial; }
+  html,body{height:100%;margin:0;background:#000;color:#fff;overflow:hidden}
+
+  /* 4 landing frames; last one stays on screen */
+  #runway-seq{position:fixed;inset:0;z-index:0;opacity:0;transition:opacity .4s ease;background:#000;overflow:hidden}
+  #runway-seq.show{opacity:1}
+  #runway-seq img{
+    position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+    opacity:0;transform:scale(1);transition:opacity .8s ease, transform 2.6s ease;
+  }
+  #runway-seq img.show{ opacity:1; animation:zoomIn 3.2s forwards, shakeSmall .25s infinite; }
+  @keyframes zoomIn{from{transform:scale(1)}to{transform:scale(1.15)}}
+  @keyframes shakeSmall{
+    0%{transform:translate(0,0) scale(1.05)}
+    25%{transform:translate(-2px,1px) scale(1.06)}
+    50%{transform:translate(2px,-1px) scale(1.07)}
+    75%{transform:translate(-1px,2px) scale(1.08)}
+    100%{transform:translate(0,0) scale(1.09)}
+  }
+  .touchdown{animation:bump .7s ease-out}
+  @keyframes bump{
+    0%{transform:translateY(0) scale(1.15)}
+    40%{transform:translateY(12px) scale(1.1)}
+    70%{transform:translateY(-6px) scale(1.12)}
+    100%{transform:translateY(0) scale(1.15)}
+  }
+
+  /* Start card (preview button) */
+  .card{
+    width:92%;max-width:1000px;margin:auto;position:relative;z-index:10;
+    background:rgba(255,255,255,.08);border-radius:20px;padding:28px;
+    box-shadow:0 10px 30px rgba(0,0,0,.2);backdrop-filter:blur(6px);text-align:center;
+    top:50%;transform:translateY(-50%);transition:opacity .6s ease, transform .6s ease;
+  }
+  .hide-out{opacity:0;transform:translateY(-50%) scale(.98);pointer-events:none}
+  h1{margin:6px 0 4px;font-size:clamp(32px,6vw,64px)}
+  .subtitle{opacity:.9;margin-bottom:18px}
+  .countdown{display:flex;gap:12px;justify-content:center;margin:18px 0}
+  .count-item{background:rgba(255,255,255,.14);padding:12px 18px;border-radius:12px;min-width:84px}
+  .count-item .num{font-size:32px;font-weight:700}
+  .count-item .label{font-size:14px;opacity:.9}
+  .cta button{padding:10px 16px;border-radius:10px;border:0;cursor:pointer}
+
+  /* takeoff icon */
+  .plane{width:140px;position:absolute;left:-200px;bottom:130px;opacity:0;transition:all 1s linear;z-index:5}
+  .plane.takeoff{animation:takeoff 2s ease-in forwards}
+  @keyframes takeoff{0%{left:10%;bottom:130px;opacity:1}100%{left:120%;bottom:60%;opacity:0}}
+
+  /* Pinklandia background stays visible at reveal */
+  #pinklandia-bg{
+    position:fixed;inset:0;background:url("pinklandia-city.jpg") bottom center/cover no-repeat;
+    opacity:0;transition:opacity 1.6s ease;z-index:1
+  }
+  #pinklandia-bg.show{opacity:1;animation:panCity 20s linear infinite alternate}
+  @keyframes panCity{0%{background-position:bottom left}100%{background-position:bottom right}}
+
+  /* Final big sign */
+  #only-reveal{
+    position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;
+    opacity:0;transition:opacity 1s ease .2s;pointer-events:none;
+  }
+  #only-reveal.show{opacity:1}
+  #only-reveal .title{
+    font-size:clamp(48px,9vw,140px);
+    font-weight:900;letter-spacing:.5px;
+    color:#ffe6f2;text-shadow:0 8px 30px rgba(0,0,0,.55), 0 0 10px rgba(255,105,180,.35);
+  }
+
+  /* Confetti (only starts at the reveal) */
+  canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:15}
+</style>
+</head>
+<body>
+
+  <!-- 4 frames -->
+  <div id="runway-seq">
+    <img id="frame0" alt="frame0"/>
+    <img id="frame1" alt="frame1"/>
+    <img id="frame2" alt="frame2"/>
+    <img id="frame3" alt="frame3"/>
+  </div>
+
+  <!-- Sounds (optional; if files are missing, it still works) -->
+  <audio id="snd-ding"    src="seatbelt-ding.mp3" preload="auto"></audio>
+  <audio id="snd-engine"  src="engine-loop.mp3"    preload="auto" loop></audio>
+  <audio id="snd-wind"    src="wind-rumble.mp3"    preload="auto" loop></audio>
+  <audio id="snd-touch"   src="touchdown-thump.mp3" preload="auto"></audio>
+  <audio id="snd-reverse" src="reverse-thrust.mp3"  preload="auto"></audio>
+  <audio id="snd-roar"    src="takeoff-roar.mp3"    preload="auto"></audio>
+  <audio id="snd-crowd"   src="applause-cheer.mp3"  preload="auto"></audio>
+
+  <!-- Background + Final sign -->
+  <div id="pinklandia-bg"></div>
+  <div id="only-reveal"><div class="title">It's a Girl! 💖</div></div>
+
+  <!-- Start card for preview -->
+  <div class="card" id="card">
+    <h1>Taking off to...?</h1>
+    <div class="subtitle">Destination: <strong>Bluelandia</strong> or <strong>Pinklandia</strong></div>
+    <div id="countdown" class="countdown">
+      <div class="count-item"><div class="num" id="days">00</div><div class="label">Days</div></div>
+      <div class="count-item"><div class="num" id="hours">00</div><div class="label">Hours</div></div>
+      <div class="count-item"><div class="num" id="minutes">00</div><div class="label">Min</div></div>
+      <div class="count-item"><div class="num" id="seconds">00</div><div class="label">Sec</div></div>
+    </div>
+    <svg class="plane" viewBox="0 0 64 64" aria-hidden="true">
+      <g fill="#fff"><path d="M4 30 L52 18 L56 20 L28 34 L60 38 L56 40 L52 42 L4 30 Z"/>
+      <rect x="2" y="30" width="6" height="2" fill="#fff"/></g>
+    </svg>
+    <div class="cta"><button id="manualTrigger">Simulate Takeoff (preview)</button></div>
+  </div>
+
+  <canvas id="confetti"></canvas>
+
+<script>
+  /* ======= Config ======= */
+  const eventDate = new Date("2025-09-13T17:00:00");
+  const frames = ["Image (1).jpeg","Image (2).jpeg","Image (3).jpeg","Image (4).jpeg"];
+  frames.forEach((src,i)=>{document.getElementById("frame"+i).src=src;});
+
+  const plane = document.querySelector('.plane');
+  const card  = document.getElementById('card');
+  const onlyReveal = document.getElementById('only-reveal');
+  const pinkBG = document.getElementById('pinklandia-bg');
+
+  /* ======= Sounds ======= */
+  const snd={
+    ding:document.getElementById('snd-ding'),
+    engine:document.getElementById('snd-engine'),
+    wind:document.getElementById('snd-wind'),
+    touch:document.getElementById('snd-touch'),
+    reverse:document.getElementById('snd-reverse'),
+    roar:document.getElementById('snd-roar'),
+    crowd:document.getElementById('snd-crowd')
+  };
+  function play(a,vol=1){try{a.volume=vol;a.currentTime=0;a.play();}catch(e){}}
+  function fadeOut(a,ms=1500){
+    try{const step=50,dec=a.volume/(ms/step);
+      const id=setInterval(()=>{a.volume=Math.max(0,a.volume-dec);if(a.volume<=0){a.pause();clearInterval(id)}},step);
+    }catch(e){}
+  }
+
+  /* ======= Guaranteed applause (file or synthetic) ======= */
+  let AC=null, masterG=null;
+  function ensureAC(){if(!AC){AC=new (window.AudioContext||window.webkitAudioContext)();masterG=AC.createGain();masterG.connect(AC.destination);}}
+  function randomNoiseBuffer(len=0.18){const n=Math.floor(len*AC.sampleRate);const b=AC.createBuffer(1,n,AC.sampleRate);const d=b.getChannelData(0);for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*(1-i/n);return b;}
+  function scheduleClap(t){const s=AC.createBufferSource();s.buffer=randomNoiseBuffer(0.12+Math.random()*0.06);const bp=AC.createBiquadFilter();bp.type='bandpass';bp.frequency.value=1800+Math.random()*1200;bp.Q.value=4;const g=AC.createGain();g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(1,t+0.01);g.gain.exponentialRampToValueAtTime(0.001,t+0.2);s.connect(bp);bp.connect(g);g.connect(masterG);s.start(t);}
+  function scheduleCheer(start,dur){const src=AC.createBufferSource();const n=AC.createBuffer(1,AC.sampleRate*dur,AC.sampleRate);const d=n.getChannelData(0);let a=0,b0=0;for(let i=0;i<d.length;i++){const w=Math.random()*2-1;a=0.997*a+w*0.03;b0=0.985*b0+a*0.08;d[i]=b0*0.3;}src.buffer=n;const g=AC.createGain();g.gain.setValueAtTime(0,start);g.gain.linearRampToValueAtTime(0.45,start+0.5);g.gain.linearRampToValueAtTime(0.0,start+dur);src.connect(g);g.connect(masterG);src.start(start);src.stop(start+dur+0.1);}
+  function applauseFallback(ms=7000){
+    ensureAC(); if(AC.state==='suspended') AC.resume();
+    const now=AC.currentTime+0.02; const dur=ms/1000;
+    scheduleCheer(now,dur);
+    let t=now; while(t<now+dur){const burst=6+Math.floor(Math.random()*8);for(let i=0;i<burst;i++)scheduleClap(t+Math.random()*0.2);t+=0.35+Math.random()*0.4;}
+  }
+  function playApplauseGuaranteed(){
+    if(snd.crowd && snd.crowd.src){
+      const p=snd.crowd.play?.();
+      if(p && typeof p.then==='function'){
+        p.then(()=> setTimeout(()=> fadeOut(snd.crowd,1800), 7000))
+         .catch(()=> applauseFallback(7000));
+      }else{
+        setTimeout(()=> fadeOut(snd.crowd,1800), 7000);
+      }
+    }else{
+      applauseFallback(7000);
+    }
+  }
+
+  /* ======= Countdown (preview) ======= */
+  const days=document.getElementById('days'),hours=document.getElementById('hours'),minutes=document.getElementById('minutes'),seconds=document.getElementById('seconds');
+  function pad(n){return String(n).padStart(2,'0');}
+  function tick(){
+    const now=new Date();const diff=eventDate-now;
+    if(diff<=0){trigger();clearInterval(tmr);return;}
+    const s=Math.floor(diff/1000)%60,m=Math.floor(diff/60000)%60,h=Math.floor(diff/3600000)%24,d=Math.floor(diff/86400000);
+    days.textContent=pad(d);hours.textContent=pad(h);minutes.textContent=pad(m);seconds.textContent=pad(s);
+  }
+  const tmr=setInterval(tick,1000); tick();
+
+  /* ======= Pick male English voice ======= */
+  function pickMaleEnVoice(){
+    const voices = speechSynthesis.getVoices();
+    const preferred = /(Alex|Daniel|Matthew|James|George|Ryan|Male|Google UK English Male|Microsoft (David|Guy|Mark))/i;
+    return voices.find(v => /^en(-|_|$)/i.test(v.lang) && preferred.test(v.name)) ||
+           voices.find(v => /^en(-|_|$)/i.test(v.lang));
+  }
+  function speak(text, {rate=0.86, pitch=0.95}={}){
+    return new Promise(res=>{
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = "en-US"; u.rate = rate; u.pitch = pitch;
+      const v = pickMaleEnVoice(); if(v) u.voice = v;
+      u.onend = res; speechSynthesis.speak(u);
+    });
+  }
+
+  /* ======= Captain (male English only) ======= */
+  async function captainAnnouncement(){
+    await speak("Ladies and gentlemen, this is your captain speaking. Welcome aboard.", {rate:0.84, pitch:0.95});
+    await speak("We are ready for departure to Pinklandia, or Bluelandia.", {rate:0.84, pitch:0.95});
+    await new Promise(r=>setTimeout(r,1200));
+    play(snd.roar,0.9);
+    await new Promise(r=>setTimeout(r,900));
+    await speak("We are taking off.", {rate:0.82, pitch:0.94});
+  }
+
+  /* ======= Reveal shouts (male, less robotic) ======= */
+  function speakReveal(){
+    // Short phrases + small pauses + no high pitch
+    const say = (t, d=0, r=1.06, p=0.98)=> setTimeout(()=> speak(t,{rate:r,pitch:p}), d);
+    say("It's a...", 0, 1.02, 0.96);
+    say("Girl!", 350, 1.1, 1.0);          // main hit
+    say("Congratulations!", 1200, 1.04, 0.98);
+    // subtle echo (male)
+    say("It's a girl!", 1900, 1.08, 0.98);
+  }
+
+  /* ======= Landing sequence ======= */
+  function playLandingSequence(done){
+    const seq=document.getElementById('runway-seq');
+    seq.classList.add('show');
+
+    // ambience
+    try{ snd.engine.volume=.4; snd.engine.play(); }catch(e){}
+    try{ snd.wind.volume=.5; snd.wind.play(); }catch(e){}
+    play(snd.roar,.6);
+
+    // Timings extended so frames cover captain + transition (~8.6s)
+    const times=[1600,2000,2300,3200];
+    frames.forEach((_,i)=>{
+      const img=document.getElementById("frame"+i);
+      setTimeout(()=>{
+        document.querySelectorAll('#runway-seq img').forEach(el=>el.classList.remove('show'));
+        img.classList.add('show');
+        if(i===frames.length-1){
+          img.classList.add('touchdown');
+          setTimeout(()=>{
+            play(snd.touch,.95);
+            setTimeout(()=>play(snd.reverse,.9),150);
+            done && done();          // trigger reveal right after touchdown
+          },700);
+        }
+      }, times.slice(0,i+1).reduce((a,b)=>a+b,0));
+    });
+  }
+
+  /* ======= Confetti (starts only at reveal) ======= */
+  const confettiCanvas=document.getElementById('confetti');const ctx=confettiCanvas.getContext('2d');
+  function resizeCanvas(){confettiCanvas.width=innerWidth;confettiCanvas.height=innerHeight;}
+  resizeCanvas();addEventListener('resize',resizeCanvas);
+  let confetti=[]; 
+  function startConfetti(){
+    confetti.length=0;
+    for(let i=0;i<260;i++){
+      confetti.push({x:Math.random()*confettiCanvas.width,y:Math.random()*confettiCanvas.height-confettiCanvas.height,r:Math.random()*6+4,d:Math.random()*20+10,color:"hsl("+(Math.random()*30+330)+",100%,70%)"});
+    }
+    requestAnimationFrame(draw);
+  }
+  function draw(){
+    ctx.clearRect(0,0,confettiCanvas.width,confettiCanvas.height);
+    for(let i=0;i<confetti.length;i++){
+      const c=confetti[i]; ctx.fillStyle=c.color; ctx.fillRect(c.x,c.y,c.r,c.r);
+      c.y += c.d/20; if(c.y>confettiCanvas.height){ c.y=-10; c.x=Math.random()*confettiCanvas.width; }
+    }
+    requestAnimationFrame(draw);
+  }
+
+  /* ======= Reveal (keep confetti & background) ======= */
+  function showFinal(){
+    pinkBG.classList.add('show');          // background visible
+    card.classList.add('hide-out');        // only hide the card
+    onlyReveal.classList.add('show');      // big sign
+    startConfetti();                       // confetti ONLY now
+    speakReveal();                         // male voice
+    playApplauseGuaranteed();              // applause (file or fallback)
+    setTimeout(()=>{ try{ fadeOut(snd.wind,1200); fadeOut(snd.engine,1800); }catch(e){} }, 1500);
+  }
+
+  /* ======= Orchestration ======= */
+  function trigger(){
+    try{ ensureAC(); if(AC.state==='suspended') AC.resume(); }catch(e){}
+    play(snd.ding,.9);
+    captainAnnouncement();                 // ~5–6s
+    plane.classList.add('takeoff');
+    setTimeout(()=>{
+      plane.classList.remove('takeoff');
+      playLandingSequence(showFinal);      // ~8.6s; reveal right after
+    }, 1600);
+  }
+
+  document.getElementById('manualTrigger').addEventListener('click', trigger);
+
+  // optional: auto trigger at event time
+  function checkTime(){ if(new Date()>=eventDate){ trigger(); clearInterval(checker);} }
+  const checker=setInterval(checkTime,10000);
+
+  // simple countdown update (for preview card)
+  const days=document.getElementById('days'),hours=document.getElementById('hours'),minutes=document.getElementById('minutes'),seconds=document.getElementById('seconds');
+  function pad(n){return String(n).padStart(2,'0');}
+  function tick(){
+    const now=new Date(), diff=+eventDate - +now;
+    if(diff<=0){ clearInterval(tmr); return; }
+    const s=Math.floor(diff/1000)%60,m=Math.floor(diff/60000)%60,h=Math.floor(diff/3600000)%24,d=Math.floor(diff/86400000);
+    days.textContent=pad(d);hours.textContent=pad(h);minutes.textContent=pad(m);seconds.textContent=pad(s);
+  }
+  const tmr=setInterval(tick,1000); tick();
 </script>
 </body>
 </html>
