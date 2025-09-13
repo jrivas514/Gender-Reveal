@@ -33,12 +33,48 @@
   }
   #pinklandia-bg.show {
     opacity:1;
-    animation: panCity 20s linear infinite alternate; /* 🎥 Parallax pan */
+    animation: panCity 20s linear infinite alternate;
   }
   @keyframes panCity {
     0% { background-position: bottom left; }
     100% { background-position: bottom right; }
   }
+
+  /* 🎞️ Secuencia cockpit/rumbo a pista */
+  #runway-seq{
+    position: fixed;
+    inset: 0;
+    z-index:2;           /* debajo de la tarjeta, encima del fondo */
+    opacity:0;
+    transition: opacity .4s ease;
+    background:#000;     /* evita parpadeos al cambiar de frame */
+  }
+  #runway-seq.show{ opacity:1; }
+  #runway-seq img{
+    position:absolute; inset:0;
+    width:100%; height:100%;
+    object-fit:cover;
+  }
+
+  /* 🤢 Turbulencia / sacudida de cámara */
+  @keyframes shake {
+    0%   { transform: translate(0,0) rotate(0deg); }
+    20%  { transform: translate(-2px,1px) rotate(-0.2deg); }
+    40%  { transform: translate(3px,-1px) rotate(0.3deg); }
+    60%  { transform: translate(-1px,2px) rotate(-0.3deg); }
+    80%  { transform: translate(2px,0) rotate(0.2deg); }
+    100% { transform: translate(0,0) rotate(0deg); }
+  }
+  .camera-shake{ animation: shake .12s linear infinite; }
+
+  /* 💥 Golpe de touchdown */
+  @keyframes bump {
+    0%   { transform: translateY(0) scale(1); filter: brightness(1); }
+    20%  { transform: translateY(6px) scale(.995); filter: brightness(.95); }
+    45%  { transform: translateY(-2px) scale(1.002); filter: brightness(1.05); }
+    100% { transform: translateY(0) scale(1); filter: brightness(1); }
+  }
+  .touchdown-bump{ animation: bump .55s ease-out 1; }
 
   .card{
     width:92%;
@@ -59,12 +95,12 @@
   .count-item .num{font-size:40px; font-weight:700; color:#fff}
   .count-item .label{font-size:18px; color:rgba(255,255,255,0.9)}
 
-  /* ✈️ Airplane */
+  /* ✈️ Airplane (se mantiene para el despegue) */
   .plane{
     width:160px;
     position:absolute;
     left:-200px;
-    bottom:150px; /* ✨ lands near skyline bottom */
+    bottom:150px;
     opacity:0;
     transition:all 1s linear;
     z-index:15;
@@ -96,10 +132,15 @@
     pointer-events:none;
     z-index:5;
   }
+
+  /* Botón de prueba visible */
+  .cta{ margin-top:12px; }
+  #manualTrigger{ padding:10px 16px; border-radius:10px; border:0; cursor:pointer }
 </style>
 </head>
 <body>
   <div id="pinklandia-bg"></div> <!-- 🌆 Pinklandia background -->
+  <div id="runway-seq"><img alt="secuencia aterrizaje" /></div> <!-- 🎞️ NUEVO -->
 
   <canvas id="confetti"></canvas>
 
@@ -115,7 +156,7 @@
     </div>
 
     <!-- ✈️ SVG airplane -->
-    <svg class="plane" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+    <svg class="plane" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <g fill="#fff">
         <path d="M4 30 L52 18 L56 20 L28 34 L60 38 L56 40 L52 42 L4 30 Z" opacity="0.95"/>
         <rect x="2" y="30" width="6" height="2" fill="#fff"/>
@@ -125,14 +166,28 @@
     <div id="revealText" class="reveal">¿Niño o Niña?</div>
 
     <div class="cta">
-    <button id="manualTrigger" disabled>Simular despegue (prueba)</button>
+      <button id="manualTrigger">Simular despegue (prueba)</button>
     </div>
   </div>
 
 <script>
-  const eventDate = new Date("2025-09-13T 17:00:00");
+  // ⏱️ Ajusta a tu fecha/hora local
+  const eventDate = new Date("2025-09-13T17:00:00");
+
   const plane = document.querySelector('.plane');
+  const runwaySeq = document.getElementById('runway-seq');
+  const runwayImg = runwaySeq.querySelector('img');
   let didTrigger = false;
+
+  // 🎞️ Frames de la secuencia (del amanecer a PINKLANDIA)
+  const frames = [
+    "Image (1).jpeg",
+    "Image (2).jpeg",
+    "Image (3).jpeg",
+    "Image (4).jpeg" // ← Pinklandia
+  ];
+  // Preload para evitar flashes
+  frames.forEach(src => { const i = new Image(); i.src = src; });
 
   function pad(n){ return String(n).padStart(2,'0'); }
   function updateTimer(){
@@ -149,30 +204,64 @@
     document.getElementById('seconds').textContent = pad(s);
   }
 
+  // 🔊 Voz: intenta usar voz masculina es-ES si existe
+  function speakReveal(){
+    if(!('speechSynthesis' in window)) return;
+    const utter = new SpeechSynthesisUtterance("¡Es una niña!");
+    utter.lang = "es-ES";
+    const male = speechSynthesis.getVoices()
+      .find(v => v.lang.startsWith("es") && /male|varon|hombre|Alejandro|Jorge|Diego/i.test(v.name));
+    if(male) utter.voice = male;
+    window.speechSynthesis.speak(utter);
+  }
+
+  // 🎞️ Reproduce la secuencia con shaking y bump; llama onDone al finalizar
+  function playLandingSequence(onDone){
+    runwaySeq.classList.add('show');
+    document.body.classList.add('camera-shake');
+
+    let i = 0;
+    const frameTime = 550; // ms entre cuadros (ajusta si quieres más o menos rápido)
+
+    function next(){
+      runwayImg.src = frames[i];
+      i++;
+      if(i < frames.length - 1){
+        setTimeout(next, frameTime);
+      } else {
+        // Último frame es Pinklandia
+        document.body.classList.remove('camera-shake');
+        runwaySeq.classList.add('touchdown-bump');
+        setTimeout(() => onDone && onDone(), 600);
+      }
+    }
+    next();
+  }
+
+  function revealPinklandia(){
+    // Texto + confetti + fondos
+    const t = document.getElementById('revealText');
+    t.textContent = "¡Es una Niña! 💖";
+    t.classList.add('show');
+    document.body.style.background = "#ffd6e8";
+    document.getElementById('pinklandia-bg').classList.add('show');
+    startConfetti();
+    speakReveal();
+  }
+
   function triggerTakeoff(){
     if(didTrigger) return;
     didTrigger = true;
+
+    // Despegue del avioncito
     plane.classList.add('takeoff');
 
-    // 🎤 Voice
-    if('speechSynthesis' in window){
-      const utter = new SpeechSynthesisUtterance("¡Es un unaaaaaa niña!");
-      utter.lang = "es-ES";
-      window.speechSynthesis.speak(utter);
-    }
-
+    // Tras el despegue, iniciamos la secuencia de aterrizaje al frente
     setTimeout(()=>{
       plane.classList.remove('takeoff');
-      plane.classList.add('landing');
-    }, 2000);
-
-    setTimeout(()=>{
-      document.getElementById('revealText').textContent = "¡Es una Niña! 💖";
-      document.getElementById('revealText').classList.add('show');
-      document.body.style.background = "#ffd6e8";
-      document.getElementById('pinklandia-bg').classList.add('show'); // 🌆 show + pan
-      startConfetti();
-    }, 4500);
+      plane.classList.add('landing'); // opcional, se ve detrás de la secuencia
+      playLandingSequence(revealPinklandia);
+    }, 1600);
   }
 
   document.getElementById('manualTrigger').addEventListener('click', triggerTakeoff);
@@ -182,18 +271,23 @@
   // 🎉 Confetti
   const confettiCanvas = document.getElementById('confetti');
   const ctx = confettiCanvas.getContext('2d');
-  confettiCanvas.width = window.innerWidth;
-  confettiCanvas.height = window.innerHeight;
+  function resizeCanvas(){
+    confettiCanvas.width = window.innerWidth;
+    confettiCanvas.height = window.innerHeight;
+  }
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+
   let confetti = [];
   function startConfetti(){
-    for(let i=0; i<200; i++){
+    confetti.length = 0;
+    for(let i=0; i<220; i++){
       confetti.push({
         x: Math.random()*confettiCanvas.width,
         y: Math.random()*confettiCanvas.height - confettiCanvas.height,
         r: Math.random()*6+4,
         d: Math.random()*20+10,
         color: "hsl("+(Math.random()*30+330)+",100%,70%)",
-        tilt: Math.random()*10 -10
       });
     }
     requestAnimationFrame(drawConfetti);
